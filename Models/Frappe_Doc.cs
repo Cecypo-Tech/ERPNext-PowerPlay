@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ERPNext_PowerPlay.Models
 {
-    class Frappe_Doc
+    public class Frappe_Doc
     {
         // Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse);
         public class Data

@@ -127,10 +127,19 @@ namespace ERPNext_PowerPlay
                     }
                     db.SaveChanges();
 
+                    Frappe_DocList.FrappeDocList DocList = await fapi.GetDocs2Print();
+
                     var p = new PrintActions();
                     foreach (ERPNext_PowerPlay.Models.PrinterSetting ps in db.PrinterSetting.ToList())
                     {
-                        bool processed = await p.Frappe_GetDoc("INV-00040", ps);
+                        foreach (Frappe_DocList.data fd in DocList.data )
+                        {
+                            bool processed = await p.Frappe_GetDoc(fd.name, ps);
+                            if (processed)
+                            {
+                                await fapi.UpdateCount("/api/resource/Sales Invoice", fd);
+                            }
+                        }
                         
                     }
                 }

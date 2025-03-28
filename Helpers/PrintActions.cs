@@ -92,9 +92,9 @@ namespace ERPNext_PowerPlay.Helpers
                             //case PrintEngine.SM:
                             //    PrintSumatra(tmpFile, doc, t2, cp);
                             //    break;
-                            //case PrintEngine.GS:
-                            //    p.PrintGhostScript(tmpFile, doc, t2, cp);
-                            //    break;
+                            case PrintEngine.GS:
+                                p.PrintGhostScript(tmpFile, doc, t2, cp);
+                                break;
                             //case PrintEngine.REPX:
                             //    p.PrintREPX(tmpFile, doc, t2, cp);
                             //    break;

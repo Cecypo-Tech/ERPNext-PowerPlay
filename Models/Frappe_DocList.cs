@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ERPNext_PowerPlay.Models
 {
-    class Frappe_DocList
+    public class Frappe_DocList
     {
         public class data
         {
@@ -23,6 +23,8 @@ namespace ERPNext_PowerPlay.Models
             public int exempt_from_sales_tax { get; set; }
             public double total_taxes_and_charges { get; set; }
             public double total { get; set; }
+
+            public int custom_print_count { get; set; }
         }
 
         public class FrappeDocList
