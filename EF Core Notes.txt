@@ -1,0 +1,10 @@
+//TO CREATE
+Add-Migration InitialCreate
+Update-Database
+
+//TO UPDATE
+Add-Migration AddBlogCreatedDate
+
+//TO REVERSE
+Remove-Migration
+Update-Database InitialCreate

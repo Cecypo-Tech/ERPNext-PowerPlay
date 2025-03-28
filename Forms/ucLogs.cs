@@ -9,11 +9,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace ERPNext_PowerPlay
+namespace ERPNext_PowerPlay.Forms
 {
-    public partial class frmLogin : DevExpress.XtraEditors.XtraForm
+    public partial class ucLogs : DevExpress.XtraEditors.XtraUserControl
     {
-        public frmLogin()
+        public ucLogs()
         {
             InitializeComponent();
         }

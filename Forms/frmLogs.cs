@@ -1,4 +1,4 @@
-﻿using DevExpress.XtraBars;
+﻿using DevExpress.XtraEditors;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -9,11 +9,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace ERPNext_PowerPlay
+namespace ERPNext_PowerPlay.Forms
 {
-    public partial class frmMain : DevExpress.XtraBars.Ribbon.RibbonForm
+    public partial class frmLogs : DevExpress.XtraEditors.XtraForm
     {
-        public frmMain()
+        public frmLogs()
         {
             InitializeComponent();
         }
