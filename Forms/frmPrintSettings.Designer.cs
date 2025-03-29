@@ -57,6 +57,7 @@
             layoutControlItem2 = new DevExpress.XtraLayout.LayoutControlItem();
             emptySpaceItem1 = new DevExpress.XtraLayout.EmptySpaceItem();
             layoutControlItem3 = new DevExpress.XtraLayout.LayoutControlItem();
+            svgImageCollection1 = new DevExpress.Utils.SvgImageCollection(components);
             ((System.ComponentModel.ISupportInitialize)layoutControl1).BeginInit();
             layoutControl1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)gc_PrintSettings).BeginInit();
@@ -67,6 +68,7 @@
             ((System.ComponentModel.ISupportInitialize)layoutControlItem2).BeginInit();
             ((System.ComponentModel.ISupportInitialize)emptySpaceItem1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem3).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)svgImageCollection1).BeginInit();
             SuspendLayout();
             // 
             // layoutControl1
@@ -286,6 +288,11 @@
             layoutControlItem3.Size = new Size(114, 44);
             layoutControlItem3.TextVisible = false;
             // 
+            // svgImageCollection1
+            // 
+            svgImageCollection1.Add("EditMirrored.svg", (DevExpress.Utils.Svg.SvgImage)resources.GetObject("svgImageCollection1.EditMirrored.svg"));
+            svgImageCollection1.Add("DrawSolid.svg", (DevExpress.Utils.Svg.SvgImage)resources.GetObject("svgImageCollection1.DrawSolid.svg"));
+            // 
             // frmPrintSettings
             // 
             Appearance.Options.UseFont = true;
@@ -306,6 +313,7 @@
             ((System.ComponentModel.ISupportInitialize)layoutControlItem2).EndInit();
             ((System.ComponentModel.ISupportInitialize)emptySpaceItem1).EndInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem3).EndInit();
+            ((System.ComponentModel.ISupportInitialize)svgImageCollection1).EndInit();
             ResumeLayout(false);
         }
 
@@ -338,5 +346,6 @@
         private DevExpress.XtraGrid.Columns.GridColumn colDateModified;
         private DevExpress.XtraEditors.SimpleButton simpleButton1;
         private DevExpress.XtraLayout.LayoutControlItem layoutControlItem3;
+        private DevExpress.Utils.SvgImageCollection svgImageCollection1;
     }
 }

@@ -3,7 +3,8 @@ Add-Migration InitialCreate
 Update-Database
 
 //TO UPDATE
-Add-Migration AddBlogCreatedDate
+Add-Migration
+Update-Database
 
 //TO REVERSE
 Remove-Migration

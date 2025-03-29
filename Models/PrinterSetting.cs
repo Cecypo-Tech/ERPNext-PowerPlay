@@ -23,6 +23,8 @@ namespace ERPNext_PowerPlay.Models
         public int? Copies { get; set; }
         public string? PageRange { get; set; }
 
+        public string REPX_Template { get; set; }
+
         //Pure Frappe Doc Settings;
         public string? FrappeTemplateName { get; set; }
         public string? LetterHead { get; set; }

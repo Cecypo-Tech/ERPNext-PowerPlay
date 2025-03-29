@@ -4,6 +4,8 @@ using DevExpress.Pdf;
 using DevExpress.XtraReports.Templates;
 using DevExpress.XtraRichEdit.Import.EPub;
 using ERPNext_PowerPlay.Models;
+using Ghostscript.NET.Processor;
+using Ghostscript.NET;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using Serilog;
@@ -15,12 +17,17 @@ using System.Net.Http;
 using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Threading.Tasks;
+using System.Reflection;
+using System.Diagnostics;
+using DevExpress.XtraReports.UI;
+using DevExpress.DataAccess.Json;
 
 
 namespace ERPNext_PowerPlay.Helpers
 {
     public class PrintActions
     {
+        string filename = "";
         public async Task<bool> Frappe_GetDoc(string DocName, PrinterSetting PS)
         {
             try
@@ -44,13 +51,13 @@ namespace ERPNext_PowerPlay.Helpers
                 frappe_printfilter = frappe_printfilter.Replace("_docname_", DocName);
 
                 string filepart = Path.GetRandomFileName() + "_" + DocName + ".pdf";
-                string filename = Path.Combine(Path.GetTempPath(), filepart);
+                filename = Path.Combine(Path.GetTempPath(), filepart);
 
                 FrappeAPI fapi = new FrappeAPI();
-                HttpResponseMessage response_qr = await fapi.GetAsReponse("/api/method/frappe.utils.print_format.download_pdf", frappe_printfilter);
-                response_qr.EnsureSuccessStatusCode();
-                byte[] b = await response_qr.Content.ReadAsByteArrayAsync();
-                PrintDoc(DocName, filename, b);
+                HttpResponseMessage response = await fapi.GetAsReponse("/api/method/frappe.utils.print_format.download_pdf", frappe_printfilter);
+                response.EnsureSuccessStatusCode();
+                
+                PrintDoc(DocName, filename, response.Content);
                 //string m = System.Text.Encoding.UTF8.GetString(b);
                 //using (MemoryStream ms = new MemoryStream(b))
                 //{
@@ -72,14 +79,15 @@ namespace ERPNext_PowerPlay.Helpers
         }
 
 
-        public void PrintDoc(string DocName, string filename, byte[] b)
+        public async void PrintDoc(string DocName, string filename, HttpContent responseContent)
         {
             try
             {
+                bool success = false;
+                byte[] byteData = await responseContent.ReadAsByteArrayAsync();
                 AppDbContext db = new AppDbContext();
                 db.PrinterSetting.Load();
                 List<PrinterSetting> ps = db.PrinterSetting.ToList();
-
                 foreach (PrinterSetting printrow in db.PrinterSetting)
                 {
                     if (PrinterExists(printrow.Printer))
@@ -87,22 +95,39 @@ namespace ERPNext_PowerPlay.Helpers
                         switch (printrow.PrintEngine)
                         {
                             case PrintEngine.DX:
-                                PrintDX(DocName, b, printrow);
+                                //PrintDX(DocName, b, printrow);
+                                success = await Task.Run(() => PrintDX(DocName, byteData, printrow));
                                 break;
-                            //case PrintEngine.SM:
-                            //    PrintSumatra(tmpFile, doc, t2, cp);
-                            //    break;
+                            case PrintEngine.SM:
+                                using (MemoryStream ms = new MemoryStream(byteData))
+                                    File.WriteAllBytes(filename, ms.ToArray());
+
+                                success = await Task.Run(() => PrintSumatra(DocName, byteData, printrow, filename));
+                                break;
                             case PrintEngine.GS:
-                                p.PrintGhostScript(tmpFile, doc, t2, cp);
+                                byteData = await responseContent.ReadAsByteArrayAsync();
+                                using (MemoryStream ms = new MemoryStream(byteData))
+                                    File.WriteAllBytes(filename, ms.ToArray());
+
+                                success = await Task.Run(() => PrintGhostScript(DocName, byteData, printrow, filename));
                                 break;
-                            //case PrintEngine.REPX:
-                            //    p.PrintREPX(tmpFile, doc, t2, cp);
-                            //    break;
+                            case PrintEngine.REPX:
+                                success = await Task.Run(() => PrintREPX(DocName, "jsonDoc?", printrow));
+                                break;
                             default:
-                                PrintDX(DocName, b, printrow);
+                                success = await Task.Run(() => PrintDX(DocName, byteData, printrow));
                                 break;
                         }
 
+                        if (success) Log.Information("[Printed] {0} -> {1}", printrow.PrintEngine.ToString(), DocName);
+                        try
+                        {
+                            File.Delete(filename);
+                        }
+                        catch (Exception exFileDelete)
+                        {
+                            Log.Error(exFileDelete, "Failed to delete {0}" ,filename);
+                        }
                     }
                     else
                     {
@@ -138,8 +163,204 @@ namespace ERPNext_PowerPlay.Helpers
             if (String.IsNullOrEmpty(printerName)) { return false; } //throw new ArgumentNullException("printerName"); }
             return System.Drawing.Printing.PrinterSettings.InstalledPrinters.Cast<string>().Any(name => printerName.ToUpper().Trim() == name.ToUpper().Trim());
         }
+        private static string GetUtilPath(string utilName) => Path.Combine(
+                Path.GetDirectoryName(
+                    (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly()).Location),
+                utilName);
 
-        public void PrintDX(string DocName, byte[] b, PrinterSetting copyData)
+
+        public bool PrintREPX(string DocName, string jsonDoc, PrinterSetting copyData)
+        {
+            try
+            {
+                if (!File.Exists(copyData.REPX_Template))
+                {
+                    Log.Error("PrintREPX-REPXFile does not exist: " + copyData.REPX_Template);
+                    return false;
+                }
+
+                var jsonDataSource = new JsonDataSource();
+                jsonDataSource.JsonSource = new CustomJsonSource(jsonDoc);
+                jsonDataSource.Fill();
+
+
+                //string UtilPath = GetUtilPath(t2.TillConfig.LayoutFile);
+                //List<PdfProcessor.Document> lst = new List<PdfProcessor.Document>();
+                //lst.Add(doc);
+
+                //report.LoadLayout(UtilPath);
+                //https://docs.devexpress.com/WindowsForms/402477/build-an-application/security-considerations/safe-deserialization
+                DevExpress.Utils.DeserializationSettings.InvokeTrusted(() =>
+                {
+                    // Trusted deserialization.  
+                    XtraReport report = new XtraReport();
+                    report.LoadLayout(copyData.REPX_Template);
+                    report.DataSource = jsonDataSource;
+                    //ORIENTATION SET IN REPX FILE
+                    report.CreateDocument();
+                    for (int i = 0; i < copyData.Copies; i++)
+                        report.Print(copyData.Printer);
+
+                    DevExpress.XtraPrinting.PdfExportOptions ops = new DevExpress.XtraPrinting.PdfExportOptions();
+                    ops.DocumentOptions.Title = DocName;
+                    ops.DocumentOptions.Producer = Application.ProductName;
+                    ops.DocumentOptions.Author = Application.ProductName;
+                    ops.DocumentOptions.Application = Application.ProductName;
+                    ops.DocumentOptions.Subject = "by Cecypo.Tech";
+                    ops.DocumentOptions.Keywords = "CECYPO, CECYPO.TECH, ERPNext, TIMS, eTIMS";
+
+                    //Log.Information("Exporting file to: {0}" + fi.FullName);
+                    //report.ExportToPdf(fi.FullName, ops);
+                });
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "[PrintError] {0}", ex.Message);
+                if (ex.InnerException != null) Log.Error(ex, "[PrintError] {0}", ex.InnerException.Message);
+                return false;
+            }
+        }
+
+        public bool PrintSumatra(string DocName, byte[] b, PrinterSetting copyData, string OutputFile)
+        {
+            try
+            {
+                if (!File.Exists(OutputFile))
+                {
+                    Log.Error("PrintSM-OutputFile does not exist: " + OutputFile);
+                    return false;
+                }
+
+                for (int i = 0; i < copyData.Copies; i++)
+                {
+                    var filePath = OutputFile;
+                    var networkPrinterName = copyData.Printer;
+                    var printTimeout = new TimeSpan(0, 1, 0);
+                    var printWrapper = new SumatraPDFWrapper.SumatraPDFWrapper();
+                    printWrapper.Print(filePath, networkPrinterName, printTimeout).Wait();
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "[PrintError] {0}", ex.Message);
+                if (ex.InnerException != null) Log.Error(ex, "[PrintError] {0}", ex.InnerException.Message);
+                return false;
+            }
+        }
+
+        public bool PrintGhostScript(string DocName, byte[] b, PrinterSetting copyData, string OutputFile)
+        {
+            try
+            {
+                if (!File.Exists(OutputFile))
+                {
+                    Log.Error("PrintGS-OutputFile does not exist: " + OutputFile);
+                    return false;
+                }
+                GhostscriptVersionInfo gv = GhostscriptVersionInfo.GetLastInstalledVersion();
+                string path = Path.GetDirectoryName(gv.DllPath);
+                string UtilPath = GetUtilPath(Path.Combine(path, "gswin32c.exe"));  //Try32bit
+                if (!File.Exists(UtilPath))
+                    UtilPath = GetUtilPath(Path.Combine(path, "gswin64c.exe"));  //Try64bit
+                if (!File.Exists(UtilPath))
+                {
+                    Log.Error("PrintGS-gswin32c.exe does not exist: " + OutputFile);
+                    return false;
+                }
+
+                //using (GhostscriptProcessor processor = new GhostscriptProcessor(gv, true))
+                //{
+                //    processor.Processing += new GhostscriptProcessorProcessingEventHandler(processor_Processing);
+                List<string> switches = new List<string>();
+                switches.Add("-empty");
+                switches.Add("-dPrinted");
+                switches.Add("-dBATCH");
+                switches.Add("-dNOPAUSE");
+                switches.Add("-dNOSAFER");
+                switches.Add("-dQUIET");
+                switches.Add("-dNOPROMPT");
+                switches.Add("-dNumCopies=" + copyData.Copies);
+                switches.Add("-sDEVICE=mswinpr2");
+                switches.Add("-sOutputFile=\"%printer%" + copyData.Printer + "\"");
+                switches.Add("-f");
+                switches.Add("\"" + OutputFile + "\"");
+
+                //List<string> switches = new List<string>();
+                //switches.Add("-empty");
+                //switches.Add("-dSAFER");
+                //switches.Add("-dBATCH");
+                //switches.Add("-dNOPAUSE");
+                //switches.Add("-dNOPROMPT");
+                //switches.Add(@"-sFONTPATH=" + System.Environment.GetFolderPath(System.Environment.SpecialFolder.Fonts));
+                //switches.Add("-dNumCopies=" + copyData.Copies);
+                //switches.Add("-sDEVICE=png16m");
+                //switches.Add("-r96");
+                //switches.Add("-dTextAlphaBits=4");
+                //switches.Add("-dGraphicsAlphaBits=4");
+                //switches.Add("-sOutputFile=\"%printer%" + copyData.Printer + "\"");
+                //switches.Add(@"-f");
+                //switches.Add("\"" + OutputFile + "\"");
+
+                //// if you dont want to handle stdio, you can pass 'null' value as the last parameter
+                //LogStdio stdio = new LogStdio();
+                //processor.StartProcessing(switches.ToArray(), stdio);
+
+                ProcessStartInfo startInfo = new ProcessStartInfo();
+                //startInfo.Arguments = " -dPrinted -dBATCH -dNOPAUSE -dNOSAFER -q -dNumCopies=" + Convert.ToString(1) + " -sDEVICE=ljet4 -sOutputFile=\"\\\\spool\\" + printerName + "\" \"" + OutputFile + "\" ";
+                string args = string.Join(" ", switches.ToArray(), 1, switches.Count - 1);
+                startInfo.Arguments = args;
+                startInfo.FileName = UtilPath;
+                startInfo.UseShellExecute = false;
+
+                startInfo.RedirectStandardError = true;
+                startInfo.RedirectStandardOutput = true;
+
+                Process process = Process.Start(startInfo);
+
+                //Console.WriteLine(process.StandardError.ReadToEnd() + process.StandardOutput.ReadToEnd());
+
+                process.WaitForExit(30000);
+                if (process.HasExited == false) process.Kill();
+
+
+                return process.ExitCode == 0;
+                //}
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "[PrintError] {0}", ex.Message);
+                if (ex.InnerException != null) Log.Error(ex, "[PrintError] {0}", ex.InnerException.Message);
+                return false;
+            }
+        }
+
+        void processor_Processing(object sender, GhostscriptProcessorProcessingEventArgs e)
+        {
+            Log.Information(e.CurrentPage.ToString() + " / " + e.TotalPages.ToString());
+        }
+        public class LogStdio : GhostscriptStdIO
+        {
+            public LogStdio() : base(true, true, true) { }
+
+            public override void StdIn(out string input, int count)
+            {
+                input = new string('\n', count);
+            }
+            public override void StdOut(string output)
+            {
+                //Log.Write(output);
+            }
+            public override void StdError(string error)
+            {
+                Log.Error("Error: " + error);
+            }
+        }
+
+        public bool PrintDX(string DocName, byte[] b, PrinterSetting copyData)
         {
             try
             {
@@ -221,15 +442,17 @@ namespace ERPNext_PowerPlay.Helpers
                             documentProcessor.PrintPage -= OnPrintPage;
                             documentProcessor.QueryPageSettings -= OnQueryPageSettings;
                             Log.Debug(String.Format("Extra Log End: Printing {0} to {1}", DocName, copyData.Printer));
+
                         }
                     }
                 }
-                Log.Information("[Printed] {0} => {1}", copyData.PrintEngine.ToString(), DocName);
+                return true;
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "[PrintError] {0}", ex.Message);
                 if (ex.InnerException != null) Log.Error(ex, "[PrintError] {0}", ex.InnerException.Message);
+                return false;
             }
         }
 

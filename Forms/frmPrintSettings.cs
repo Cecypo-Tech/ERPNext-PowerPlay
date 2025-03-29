@@ -1,11 +1,15 @@
 ﻿using DevExpress.DataAccess.Wizard.Model;
 using DevExpress.Office.Utils;
 using DevExpress.XtraEditors;
+using DevExpress.XtraEditors.Controls;
 using DevExpress.XtraEditors.Repository;
 using DevExpress.XtraMap;
+using DevExpress.XtraReports.Native.Templates;
+using DevExpress.XtraReports.UI;
 using DevExpress.XtraSpreadsheet.Model;
 using ERPNext_PowerPlay.Helpers;
 using ERPNext_PowerPlay.Models;
+using ERPNext_PowerPlay.Properties;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System;
@@ -42,17 +46,70 @@ namespace ERPNext_PowerPlay
                 col.VisibleIndex = -1;
             }
 
+            //Warehouse Filter List
             db.Warehouse.Load();
             RepositoryItemCheckedComboBoxEdit repository_list = new RepositoryItemCheckedComboBoxEdit();
             List<Warehouse> warelist = db.Warehouse.Local.ToList();
             repository_list.DataSource = warelist;
             repository_list.ValueMember = "name";
             repository_list.DisplayMember = "name";
-            
+
             gv_PrintSettings.Columns["WarehouseFilter"].ColumnEdit = repository_list;
             repository_list.EditValueChanged += repository_list_EditValueChanged;
 
+            //List installed Printers
             AddPrinters();
+
+            //REPX Search + Editor Buttons
+            RepositoryItemButtonEdit repository_repx = new RepositoryItemButtonEdit();
+            repository_repx.Buttons[0].Caption = "Select .REPX File";
+
+            EditorButton editButton = new EditorButton(ButtonPredefines.Glyph);
+            editButton.ImageOptions.Image = svgImageCollection1.GetImage("DrawSolid.svg");
+            editButton.Caption = "Repx Layout Designer";
+
+            repository_repx.Buttons.Add(editButton);
+            repository_repx.ButtonClick += new ButtonPressedEventHandler(Repxbuttonclick);
+
+            gv_PrintSettings.Columns["REPX_Template"].ColumnEdit = repository_repx;
+        }
+
+        private void Repxbuttonclick(object sender, ButtonPressedEventArgs e)
+        {
+            ButtonEdit buttonedit = (ButtonEdit)sender;
+            switch (e.Button.Index)
+            {
+                case 0:
+                    OpenFileDialog fdlg = new OpenFileDialog();
+                    fdlg.Title = "Select Report File";
+                    fdlg.InitialDirectory = Application.StartupPath;
+                    fdlg.Filter = "Report Files (*.repx)|*.repx";
+                    fdlg.FilterIndex = 2;
+                    fdlg.RestoreDirectory = true;
+                    if (fdlg.ShowDialog() == DialogResult.OK)
+                    { buttonedit.Text = fdlg.FileName; }
+                    break;
+                case 1:
+                    DevExpress.XtraReports.Configuration.Settings.Default.UserDesignerOptions.ReportLoadingRestrictionLevel = DevExpress.XtraReports.UI.RestrictionLevel.Enable;
+                    XtraReport report = new XtraReport();
+                    if (System.IO.File.Exists(buttonedit.Text))
+                    {
+                        // With Trusted deserialization
+                        DevExpress.Utils.DeserializationSettings.InvokeTrusted(() => report.LoadLayout(buttonedit.Text));
+                    }
+                    //report.DataSource = new PdfProcessor.Document();
+                    ReportDesignTool designTool = new ReportDesignTool(report);
+
+                    // Invoke the Ribbon End-User Report Designer form  
+                    // and load the report into it.
+                    designTool.ShowRibbonDesigner();
+
+                    // Invoke the Ribbon End-User Report Designer form modally 
+                    // with the specified look and feel settings.
+                    designTool.ShowRibbonDesigner();
+                    break;
+            }
+            ;
         }
 
         private void AddPrinters()
@@ -75,7 +132,7 @@ namespace ERPNext_PowerPlay
 
             foreach (Warehouse item in editor.Properties.DataSource as List<Warehouse>)
             {
-               if (checkedItems!=null) item.selected = checkedItems.Contains(item);
+                if (checkedItems != null) item.selected = checkedItems.Contains(item);
             }
 
             gv_PrintSettings.RefreshData();
@@ -132,7 +189,7 @@ namespace ERPNext_PowerPlay
                     var p = new PrintActions();
                     foreach (ERPNext_PowerPlay.Models.PrinterSetting ps in db.PrinterSetting.ToList())
                     {
-                        foreach (Frappe_DocList.data fd in DocList.data )
+                        foreach (Frappe_DocList.data fd in DocList.data)
                         {
                             bool processed = await p.Frappe_GetDoc(fd.name, ps);
                             if (processed)
@@ -140,7 +197,7 @@ namespace ERPNext_PowerPlay
                                 await fapi.UpdateCount("/api/resource/Sales Invoice", fd);
                             }
                         }
-                        
+
                     }
                 }
 

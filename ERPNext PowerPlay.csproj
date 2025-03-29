@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="DevExpress.Win.Design" Version="24.2.4-pre-25012" />
+    <PackageReference Include="Ghostscript.NET" Version="1.2.3.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.3">
       <PrivateAssets>all</PrivateAssets>
@@ -22,6 +23,7 @@
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.TextWriter" Version="3.0.0" />
     <PackageReference Include="Serilog.Sinks.WinForms.Core" Version="2.0.0" />
+    <PackageReference Include="SumatraPDFWrapper" Version="1.0.4" />
   </ItemGroup>
 
   <ItemGroup>

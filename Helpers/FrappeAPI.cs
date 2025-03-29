@@ -74,7 +74,7 @@ namespace ERPNext_PowerPlay.Helpers
                                                     ",[\"Sales Invoice\",\"etr_invoice_number\",\"!=\",\"\"]" + //Not empty
                                                     ",[\"Sales Invoice\",\"posting_date\",\">\",\"{0}\"]" +     //After Date
                                                     ",[\"Sales Invoice\",\"custom_print_count\",\"=\",\"0\"]" + //Print Count = 0
-                                                    "]&limit_page_length={1}", new DateOnly(2025, 01, 01).ToString("yyyy-MM-dd"), 10);
+                                                    "]&limit_page_length={1}", new DateOnly(2025, 01, 01).ToString("yyyy-MM-dd"), 2);
 
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}", Program.FrappeURL, FilterStr));
                 using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
