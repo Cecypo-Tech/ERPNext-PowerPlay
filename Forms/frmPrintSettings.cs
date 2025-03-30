@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Net;
@@ -23,6 +24,8 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Timers;
+using System.Windows.Controls;
 using System.Windows.Forms;
 
 namespace ERPNext_PowerPlay
@@ -72,6 +75,12 @@ namespace ERPNext_PowerPlay
             repository_repx.ButtonClick += new ButtonPressedEventHandler(Repxbuttonclick);
 
             gv_PrintSettings.Columns["REPX_Template"].ColumnEdit = repository_repx;
+
+            RepositoryItemMemoEdit memoFilter = new RepositoryItemMemoEdit();
+            gv_PrintSettings.Columns["DocFilter"].ColumnEdit = memoFilter;
+            gv_PrintSettings.Columns["DocFilter"].OptionsEditForm.ColumnSpan = 2;
+            gv_PrintSettings.Columns["DocFilter"].OptionsEditForm.RowSpan  = 2;
+            gv_PrintSettings.Columns["DocFilter"].OptionsEditForm.UseEditorColRowSpan = true;
         }
 
         private void Repxbuttonclick(object sender, ButtonPressedEventArgs e)
@@ -165,7 +174,7 @@ namespace ERPNext_PowerPlay
             {
                 //Get Warehouse List & save to DB
                 FrappeAPI fapi = new FrappeAPI();
-                //string warehouses = fapi.GetAsString("/api/resource/Warehouse", "&filters=[[\"Warehouse\",\"is_group\",\"=\",\"0\"]]").Result;
+                //Get warehouses once and save to DB. In login?
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}?{2}", Program.FrappeURL, "/api/resource/Warehouse", "&filters=[[\"Warehouse\",\"is_group\",\"=\",\"0\"]]"));
                 using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
                 using (var client = new HttpClient(handler) { BaseAddress = new Uri(Program.FrappeURL) })
@@ -184,19 +193,26 @@ namespace ERPNext_PowerPlay
                     }
                     db.SaveChanges();
 
-                    Frappe_DocList.FrappeDocList DocList = await fapi.GetDocs2Print();
-
                     var p = new PrintActions();
+
+                    Stopwatch clock = Stopwatch.StartNew();
+                    
+                   
                     foreach (ERPNext_PowerPlay.Models.PrinterSetting ps in db.PrinterSetting.ToList())
                     {
+                        Frappe_DocList.FrappeDocList DocList = await fapi.GetDocs2Print(ps);
+                        Log.Information("Collected Documents in: {0}s", clock.Elapsed.TotalSeconds.ToString());
+
+                        //await p.Frappe_GetDoc("INV-00632", ps); //Tests a single doc.
                         foreach (Frappe_DocList.data fd in DocList.data)
                         {
-                            bool processed = await p.Frappe_GetDoc(fd.name, ps);
+                            bool processed = await p.PrintDoc(fd);//.Frappe_GetDoc(fd.name, ps);
                             if (processed)
                             {
                                 await fapi.UpdateCount("/api/resource/Sales Invoice", fd);
                             }
                         }
+                        Log.Information("Princed {0} Documents in: {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
 
                     }
                 }

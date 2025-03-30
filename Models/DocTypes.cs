@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace ERPNext_PowerPlay.Models
 {
+    //Description to be used in the uri's
     public enum DocType
     {
         [Description("Sales Invoice")]

@@ -22,7 +22,7 @@ namespace ERPNext_PowerPlay.Helpers
         {   //With cookies
             try
             {
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}?{2}", Program.FrappeURL, api_endpoint, api_filter));
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}{2}", Program.FrappeURL, api_endpoint, api_filter));
                 using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
                 using (var client = new HttpClient(handler) { BaseAddress = new Uri(Program.FrappeURL) })
                 {
@@ -45,7 +45,7 @@ namespace ERPNext_PowerPlay.Helpers
         {   //With cookies
             try
             {
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}?{2}", Program.FrappeURL, api_endpoint, api_filter));
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}{2}", Program.FrappeURL, api_endpoint, api_filter));
                 using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
                 using (var client = new HttpClient(handler) { BaseAddress = new Uri(Program.FrappeURL) })
                 {
@@ -63,10 +63,12 @@ namespace ERPNext_PowerPlay.Helpers
             }
         }
 
-        public async Task<Frappe_DocList.FrappeDocList> GetDocs2Print()
+        public async Task<Frappe_DocList.FrappeDocList> GetDocs2Print(PrinterSetting ps)
         {   //With cookies
             try
             {
+               //for this ps.doctype, get all docs, with filters
+               //fields + filters
                 string FilterStr = string.Format("/api/resource/Sales Invoice?fields=[\"name\", \"customer\", \"posting_date\", \"docstatus\", \"status\", \"etr_invoice_number\"," +
                                                     "\"etr_invoice_number\", \"total_taxes_and_charges\", \"total\"]" +
                                                     "&filters=[" +
@@ -74,7 +76,7 @@ namespace ERPNext_PowerPlay.Helpers
                                                     ",[\"Sales Invoice\",\"etr_invoice_number\",\"!=\",\"\"]" + //Not empty
                                                     ",[\"Sales Invoice\",\"posting_date\",\">\",\"{0}\"]" +     //After Date
                                                     ",[\"Sales Invoice\",\"custom_print_count\",\"=\",\"0\"]" + //Print Count = 0
-                                                    "]&limit_page_length={1}", new DateOnly(2025, 01, 01).ToString("yyyy-MM-dd"), 2);
+                                                    "]&limit_page_length={1}", new DateOnly(2025, 01, 01).ToString("yyyy-MM-dd"), 10);
 
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}", Program.FrappeURL, FilterStr));
                 using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })

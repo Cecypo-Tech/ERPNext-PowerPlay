@@ -21,6 +21,8 @@ using System.Reflection;
 using System.Diagnostics;
 using DevExpress.XtraReports.UI;
 using DevExpress.DataAccess.Json;
+using DevExpress.XtraPrinting.Native;
+using DevExpress.XtraCharts.Designer.Native;
 
 
 namespace ERPNext_PowerPlay.Helpers
@@ -28,7 +30,33 @@ namespace ERPNext_PowerPlay.Helpers
     public class PrintActions
     {
         string filename = "";
-        public async Task<bool> Frappe_GetDoc(string DocName, PrinterSetting PS)
+        //public async Task<bool> Frappe_GetDoc(string DocName, PrinterSetting PS)
+        //{
+        //    try
+        //    {
+               
+        //        PrintDoc(DocName);
+        //        //string m = System.Text.Encoding.UTF8.GetString(b);
+        //        //using (MemoryStream ms = new MemoryStream(b))
+        //        //{
+        //        //    //Write a temp PDF file?
+        //        //    // File.WriteAllBytes(filename, ms.ToArray());
+
+        //        //    Log.Information(string.Format("[ERP] {0}: Fetch PDF for DocID {1} successful!", DocName, filepart));
+        //        //    PrintDoc(DocName, filename, ms);
+        //        //}
+
+
+        //        return true;
+        //    }
+        //    catch (Exception exSQL)
+        //    {
+        //        Log.Error(exSQL, exSQL.Message);
+        //        return false;
+        //    }
+        //}
+
+        private async Task<byte[]?> getFrappeDoc_AsBytes(string DocName, PrinterSetting PS)
         {
             try
             {
@@ -49,95 +77,83 @@ namespace ERPNext_PowerPlay.Helpers
                     frappe_printfilter = frappe_printfilter.Replace("_uom_", "0");
 
                 frappe_printfilter = frappe_printfilter.Replace("_docname_", DocName);
-
-                string filepart = Path.GetRandomFileName() + "_" + DocName + ".pdf";
-                filename = Path.Combine(Path.GetTempPath(), filepart);
-
-                FrappeAPI fapi = new FrappeAPI();
-                HttpResponseMessage response = await fapi.GetAsReponse("/api/method/frappe.utils.print_format.download_pdf", frappe_printfilter);
+                HttpResponseMessage response = await new FrappeAPI().GetAsReponse("/api/method/frappe.utils.print_format.download_pdf?", frappe_printfilter);
                 response.EnsureSuccessStatusCode();
-                
-                PrintDoc(DocName, filename, response.Content);
-                //string m = System.Text.Encoding.UTF8.GetString(b);
-                //using (MemoryStream ms = new MemoryStream(b))
-                //{
-                //    //Write a temp PDF file?
-                //    // File.WriteAllBytes(filename, ms.ToArray());
-
-                //    Log.Information(string.Format("[ERP] {0}: Fetch PDF for DocID {1} successful!", DocName, filepart));
-                //    PrintDoc(DocName, filename, ms);
-                //}
-
-
-                return true;
+                byte[] byteData = await response.Content.ReadAsByteArrayAsync();
+                return byteData;
             }
-            catch (Exception exSQL)
+            catch (Exception ex)
             {
-                Log.Error(exSQL, exSQL.Message);
-                return false;
+                Log.Error(ex, "Error getting FrappePDF");
+                return null;
             }
         }
 
-
-        public async void PrintDoc(string DocName, string filename, HttpContent responseContent)
+        public async Task<bool> PrintDoc(Frappe_DocList.data doc)
         {
             try
-            {
+            {   
+                //Used then needed.
+                string filepart = Path.GetRandomFileName() + "_" + doc.name + ".pdf";
+                filename = Path.Combine(Path.GetTempPath(), filepart);
+                byte[] byteData;
                 bool success = false;
-                byte[] byteData = await responseContent.ReadAsByteArrayAsync();
+                
                 AppDbContext db = new AppDbContext();
                 db.PrinterSetting.Load();
                 List<PrinterSetting> ps = db.PrinterSetting.ToList();
-                foreach (PrinterSetting printrow in db.PrinterSetting)
+                foreach (PrinterSetting printrow in db.PrinterSetting.Where(x=> x.DocType == doc.DocType))
                 {
                     if (PrinterExists(printrow.Printer))
                     {
                         switch (printrow.PrintEngine)
                         {
-                            case PrintEngine.DX:
-                                //PrintDX(DocName, b, printrow);
-                                success = await Task.Run(() => PrintDX(DocName, byteData, printrow));
+                            case PrintEngine.FrappePDF:
+                                byteData = await getFrappeDoc_AsBytes(doc.name, printrow);
+                                success = await Task.Run(() => PrintDX(doc.name, byteData, printrow));
                                 break;
-                            case PrintEngine.SM:
+                            case PrintEngine.SumatraPDF:
+                                byteData = await getFrappeDoc_AsBytes(doc.name, printrow);
                                 using (MemoryStream ms = new MemoryStream(byteData))
                                     File.WriteAllBytes(filename, ms.ToArray());
 
-                                success = await Task.Run(() => PrintSumatra(DocName, byteData, printrow, filename));
+                                success = await Task.Run(() => PrintSumatra(doc.name,  printrow, filename));
                                 break;
-                            case PrintEngine.GS:
-                                byteData = await responseContent.ReadAsByteArrayAsync();
+                            case PrintEngine.Ghostscript:
+                                byteData = await getFrappeDoc_AsBytes(doc.name, printrow);
                                 using (MemoryStream ms = new MemoryStream(byteData))
                                     File.WriteAllBytes(filename, ms.ToArray());
 
-                                success = await Task.Run(() => PrintGhostScript(DocName, byteData, printrow, filename));
+                                success = await Task.Run(() => PrintGhostScript(doc.name, printrow, filename));
                                 break;
-                            case PrintEngine.REPX:
-                                success = await Task.Run(() => PrintREPX(DocName, "jsonDoc?", printrow));
-                                break;
-                            default:
-                                success = await Task.Run(() => PrintDX(DocName, byteData, printrow));
+                            case PrintEngine.CustomTemplate:
+                                string jsonDoc = await new FrappeAPI().GetAsString("api/resource/Sales Invoice/", doc.name); //Full JSON for this document
+                                success = await Task.Run(() => PrintREPX(doc.name, jsonDoc, printrow));
                                 break;
                         }
-
-                        if (success) Log.Information("[Printed] {0} -> {1}", printrow.PrintEngine.ToString(), DocName);
-                        try
+                         try
                         {
                             File.Delete(filename);
                         }
                         catch (Exception exFileDelete)
                         {
-                            Log.Error(exFileDelete, "Failed to delete {0}" ,filename);
+                            Log.Error(exFileDelete, "Failed to delete temp file {0}", filename);
                         }
+                        if (success) Log.Information("[Printed] {0} -> {1}.{2}",doc.name, printrow.PrintEngine.ToString(), printrow.Printer.ToString());
+
                     }
                     else
                     {
-                        Log.Error("Printer not found: " + printrow.Printer.ToString());
+                        Log.Error("Printer not found: {0}", printrow.Printer.ToString());
+                        return false;
                     }
                 }
+                return true; //Once per document, not per print (which could fail even if a printer is renamed)
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error in PrintDoc with DocID: " + DocName);
+                Log.Error(ex, "Error in PrintDoc with {0}.{1}}" , doc.DocType, doc.name);
+                return false;
             }
 
         }
@@ -185,8 +201,8 @@ namespace ERPNext_PowerPlay.Helpers
 
 
                 //string UtilPath = GetUtilPath(t2.TillConfig.LayoutFile);
-                //List<PdfProcessor.Document> lst = new List<PdfProcessor.Document>();
-                //lst.Add(doc);
+                List<JsonDataSource> lst = new List<JsonDataSource>();
+                lst.Add(jsonDataSource);
 
                 //report.LoadLayout(UtilPath);
                 //https://docs.devexpress.com/WindowsForms/402477/build-an-application/security-considerations/safe-deserialization
@@ -196,11 +212,11 @@ namespace ERPNext_PowerPlay.Helpers
                     XtraReport report = new XtraReport();
                     report.LoadLayout(copyData.REPX_Template);
                     report.DataSource = jsonDataSource;
+                    //report.DataMember = "data";
                     //ORIENTATION SET IN REPX FILE
                     report.CreateDocument();
                     for (int i = 0; i < copyData.Copies; i++)
                         report.Print(copyData.Printer);
-
                     DevExpress.XtraPrinting.PdfExportOptions ops = new DevExpress.XtraPrinting.PdfExportOptions();
                     ops.DocumentOptions.Title = DocName;
                     ops.DocumentOptions.Producer = Application.ProductName;
@@ -223,7 +239,7 @@ namespace ERPNext_PowerPlay.Helpers
             }
         }
 
-        public bool PrintSumatra(string DocName, byte[] b, PrinterSetting copyData, string OutputFile)
+        public bool PrintSumatra(string DocName, PrinterSetting copyData, string OutputFile)
         {
             try
             {
@@ -251,7 +267,7 @@ namespace ERPNext_PowerPlay.Helpers
             }
         }
 
-        public bool PrintGhostScript(string DocName, byte[] b, PrinterSetting copyData, string OutputFile)
+        public bool PrintGhostScript(string DocName, PrinterSetting copyData, string OutputFile)
         {
             try
             {

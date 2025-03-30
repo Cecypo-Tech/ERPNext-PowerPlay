@@ -12,17 +12,19 @@ namespace ERPNext_PowerPlay.Models
     public class PrinterSetting : BaseEntity
     {
         public int ID { get; set; }
-        public string? WarehouseFilter { get; set; }
-        public PrintEngine PrintEngine { get; set; }
+
         public DocType DocType { get; set; }
+        public string? WarehouseFilter { get; set; }
+
+        public PrintEngine PrintEngine { get; set; }
+        public string? DocFilter { get; set; }
+        public string? Printer { get; set; }
         public string? CopyName { get; set; }
+        public int? Copies { get; set; }
+        public string? PageRange { get; set; }
         public int? FontSize { get; set; }
         public Orientation Orientation { get; set; }
         public Scaling Scaling { get; set; }
-        public string? Printer { get; set; }
-        public int? Copies { get; set; }
-        public string? PageRange { get; set; }
-
         public string REPX_Template { get; set; }
 
         //Pure Frappe Doc Settings;
@@ -34,10 +36,10 @@ namespace ERPNext_PowerPlay.Models
     }
     public enum PrintEngine
     {
-        DX,
-        SM,
-        GS,
-        REPX
+        FrappePDF,
+        SumatraPDF,
+        Ghostscript,
+        CustomTemplate
     }
     public enum Orientation
     {

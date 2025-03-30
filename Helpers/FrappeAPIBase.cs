@@ -8,7 +8,7 @@ namespace ERPNext_PowerPlay.Helpers
     public class FrappeAPIBase
     {
 
-        public async Task<List<Frappe_Doc.Data>> GetDocs2Print()
+        public async Task<List<Frappe_DocList.data>> GetDocs2Print()
         {   //With cookies
             try
             {
@@ -27,7 +27,7 @@ namespace ERPNext_PowerPlay.Helpers
                 {
                     HttpResponseMessage response_qr = await client.SendAsync(request);
                     response_qr.EnsureSuccessStatusCode();
-                    List<Frappe_Doc.Data> docList = await response_qr.Content.ReadFromJsonAsync<List<Frappe_Doc.Data>>();
+                    List<Frappe_DocList.data> docList = await response_qr.Content.ReadFromJsonAsync<List<Frappe_DocList.data>>();
                     return docList;
                 }
 

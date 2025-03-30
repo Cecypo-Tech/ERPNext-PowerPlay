@@ -14,15 +14,12 @@ namespace ERPNext_PowerPlay.Models
         public class data
         {
             public int ID { get; set; }
+            public DocType DocType { get; set; }
             public string name { get; set; }
-            public string customer { get; set; }
-            public string posting_date { get; set; }
-            public int docstatus { get; set; }
+            public string title { get; set; }   //Can be any of customer_name, supplier_name, title
+            public string date { get; set; }    //Can be any of posting_date, transaction_date, date
             public string status { get; set; }
-            public string etr_invoice_number { get; set; }
-            public int exempt_from_sales_tax { get; set; }
-            public double total_taxes_and_charges { get; set; }
-            public double total { get; set; }
+            public double grand_total { get; set; }
 
             public int custom_print_count { get; set; }
         }

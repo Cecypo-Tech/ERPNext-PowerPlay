@@ -1,4 +1,5 @@
 using DevExpress.Diagram.Core.Native;
+using DevExpress.XtraReports.Security;
 using Serilog;
 using Serilog.Sinks.WinForms.Base;
 using System.IO;
@@ -22,6 +23,7 @@ namespace ERPNext_PowerPlay
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ConfigureSerilog();
+            ScriptPermissionManager.GlobalInstance = new ScriptPermissionManager(ExecutionMode.Unrestricted);
             ApplicationConfiguration.Initialize();
             Application.Run(new frmMain());
 
