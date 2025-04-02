@@ -1,6 +1,9 @@
 ﻿using DevExpress.XtraBars;
+using DevExpress.XtraPrinting.Native;
 using DevExpress.XtraTabbedMdi;
 using ERPNext_PowerPlay.Forms;
+using ERPNext_PowerPlay.Helpers;
+using ERPNext_PowerPlay.Models;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -16,12 +19,16 @@ namespace ERPNext_PowerPlay
 {
     public partial class frmMain : DevExpress.XtraBars.Ribbon.RibbonForm
     {
+        AppDbContext db = new AppDbContext();
+
         private static readonly ILogger _logger = Log.ForContext<frmMain>();
         bool _LoggedIn = false;
         public frmMain()
         {
             InitializeComponent();
 
+            //Preview Doctypes
+            repositoryItemLookUp_PreviewDocType.DataSource = Enum.GetValues(typeof(DocType));
         }
 
 
@@ -56,6 +63,27 @@ namespace ERPNext_PowerPlay
             frmLogs frm = new frmLogs();
             frm.MdiParent = this;
             frm.Show();
+        }
+
+        private async void barButtonItem1_ItemClick(object sender, ItemClickEventArgs e)
+        {
+            try
+            {
+                byte[] byteData;
+                PrintActions pa = new PrintActions();
+                DocType d = (DocType)barEditItem_DoctypePreview.EditValue;
+                string docName = (string)barEditItem_DocNamePreview.EditValue;
+                foreach (PrinterSetting ps in db.PrinterSetting.Where(x => x.DocType == d))
+                {
+                    byteData = await pa.getFrappeDoc_AsBytes(docName, ps);
+                    await Task.Run(() => pa.PrintDX(docName, byteData, ps, true));
+                    await Task.Run(() => pa.PrintDX(docName, byteData, ps, true));
+                }
+            }
+            catch(Exception ex)
+            {
+                Log.Error(ex, "Error in Print Preview");
+            }
         }
     }
 }

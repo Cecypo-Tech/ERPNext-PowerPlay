@@ -79,7 +79,7 @@ namespace ERPNext_PowerPlay
             RepositoryItemMemoEdit memoFilter = new RepositoryItemMemoEdit();
             gv_PrintSettings.Columns["DocFilter"].ColumnEdit = memoFilter;
             gv_PrintSettings.Columns["DocFilter"].OptionsEditForm.ColumnSpan = 2;
-            gv_PrintSettings.Columns["DocFilter"].OptionsEditForm.RowSpan  = 2;
+            gv_PrintSettings.Columns["DocFilter"].OptionsEditForm.RowSpan = 2;
             gv_PrintSettings.Columns["DocFilter"].OptionsEditForm.UseEditorColRowSpan = true;
         }
 
@@ -153,6 +153,12 @@ namespace ERPNext_PowerPlay
         {
             try
             {
+                //Defaults
+                for (int i = 0; i < gv_PrintSettings.DataRowCount; i++)
+                {
+                    if (gv_PrintSettings.GetRowCellValue(i, "Copies") == null) gv_PrintSettings.SetRowCellValue(i, "Copies", 1);
+                }
+                
                 gv_PrintSettings.UpdateCurrentRow();
                 db.SaveChanges();
             }
@@ -196,8 +202,8 @@ namespace ERPNext_PowerPlay
                     var p = new PrintActions();
 
                     Stopwatch clock = Stopwatch.StartNew();
-                    
-                   
+
+
                     foreach (ERPNext_PowerPlay.Models.PrinterSetting ps in db.PrinterSetting.ToList())
                     {
                         Frappe_DocList.FrappeDocList DocList = await fapi.GetDocs2Print(ps);

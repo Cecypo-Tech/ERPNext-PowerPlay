@@ -89,11 +89,14 @@ namespace ERPNext_PowerPlay.Migrations
                         .HasColumnType("TEXT")
                         .HasDefaultValueSql("date('now')");
 
-                    b.Property<string>("DocFilter")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("DocType")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("FieldList")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FilterList")
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("FontSize")
                         .HasColumnType("INTEGER");

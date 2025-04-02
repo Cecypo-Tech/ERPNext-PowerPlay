@@ -23,6 +23,8 @@ using DevExpress.XtraReports.UI;
 using DevExpress.DataAccess.Json;
 using DevExpress.XtraPrinting.Native;
 using DevExpress.XtraCharts.Designer.Native;
+using DevExpress.CodeParser;
+using DevExpress.LookAndFeel;
 
 
 namespace ERPNext_PowerPlay.Helpers
@@ -56,11 +58,13 @@ namespace ERPNext_PowerPlay.Helpers
         //    }
         //}
 
-        private async Task<byte[]?> getFrappeDoc_AsBytes(string DocName, PrinterSetting PS)
+        public async Task<byte[]?> getFrappeDoc_AsBytes(string DocName, PrinterSetting PS)
         {
             try
             {
-                string frappe_printfilter = "doctype=Sales Invoice&name=_docname_&format=_printformat_&no_letterhead=_noletterhead_&letterhead=_letterheadnname_&settings={\"compact_item_print\":_compact_,\"print_uom_after_quantity\":_uom_}";
+                if (PS.LetterHead == null) PS.LetterHead = "No Letterhead";
+                string frappe_printfilter = "doctype=_doctype_&name=_docname_&format=_printformat_&no_letterhead=_noletterhead_&letterhead=_letterheadnname_&settings={\"compact_item_print\":_compact_,\"print_uom_after_quantity\":_uom_}";
+                frappe_printfilter = frappe_printfilter.Replace("_doctype_", PS.DocType.ToString());
                 frappe_printfilter = frappe_printfilter.Replace("_printformat_", PS.FrappeTemplateName);
                 frappe_printfilter = frappe_printfilter.Replace("_letterheadnname_", PS.LetterHead);
                 if (String.IsNullOrEmpty(PS.LetterHead))
@@ -127,7 +131,7 @@ namespace ERPNext_PowerPlay.Helpers
                                 success = await Task.Run(() => PrintGhostScript(doc.name, printrow, filename));
                                 break;
                             case PrintEngine.CustomTemplate:
-                                string jsonDoc = await new FrappeAPI().GetAsString("api/resource/Sales Invoice/", doc.name); //Full JSON for this document
+                                string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", printrow.DocType.ToString()), doc.name); //Full JSON for this document
                                 success = await Task.Run(() => PrintREPX(doc.name, jsonDoc, printrow));
                                 break;
                         }
@@ -376,7 +380,7 @@ namespace ERPNext_PowerPlay.Helpers
             }
         }
 
-        public bool PrintDX(string DocName, byte[] b, PrinterSetting copyData)
+        public bool PrintDX(string DocName, byte[] b, PrinterSetting copyData, bool ForcePreview = false)
         {
             try
             {
@@ -438,7 +442,21 @@ namespace ERPNext_PowerPlay.Helpers
                                 break;
                         }
 
-                        if (PrinterExists(copyData.Printer))
+                        if (ForcePreview)
+                        {
+                            string filepart = Path.GetRandomFileName() + "_" + DocName + ".pdf";
+                            filename = Path.Combine(Path.GetTempPath(), filepart);
+                            documentProcessor.SaveDocument(filename);
+                            new Process
+                            {
+                                StartInfo = new ProcessStartInfo(filename)
+                                {
+                                    UseShellExecute = true
+                                }
+                            }.Start();
+                            Log.Information(@"Opening {0}", filename);
+                        }
+                        else if (PrinterExists(copyData.Printer))
                         {
                             Log.Debug(String.Format("Extra Log Start: Printing {0} to {1}", DocName, copyData.Printer));
 
@@ -458,7 +476,6 @@ namespace ERPNext_PowerPlay.Helpers
                             documentProcessor.PrintPage -= OnPrintPage;
                             documentProcessor.QueryPageSettings -= OnQueryPageSettings;
                             Log.Debug(String.Format("Extra Log End: Printing {0} to {1}", DocName, copyData.Printer));
-
                         }
                     }
                 }

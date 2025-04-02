@@ -17,7 +17,8 @@ namespace ERPNext_PowerPlay.Models
         public string? WarehouseFilter { get; set; }
 
         public PrintEngine PrintEngine { get; set; }
-        public string? DocFilter { get; set; }
+        public string? FieldList { get; set; }
+        public string? FilterList { get; set; }
         public string? Printer { get; set; }
         public string? CopyName { get; set; }
         public int? Copies { get; set; }

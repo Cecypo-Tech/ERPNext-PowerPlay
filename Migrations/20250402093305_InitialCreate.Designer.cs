@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ERPNext_PowerPlay.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250325073809_2")]
-    partial class _2
+    [Migration("20250402093305_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -95,6 +95,12 @@ namespace ERPNext_PowerPlay.Migrations
                     b.Property<int>("DocType")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("FieldList")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FilterList")
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("FontSize")
                         .HasColumnType("INTEGER");
 
@@ -114,6 +120,10 @@ namespace ERPNext_PowerPlay.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Printer")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("REPX_Template")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Scaling")
@@ -139,6 +149,9 @@ namespace ERPNext_PowerPlay.Migrations
                     b.Property<string>("name")
                         .IsRequired()
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("selected")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("ID");
 

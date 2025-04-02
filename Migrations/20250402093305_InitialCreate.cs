@@ -29,16 +29,19 @@ namespace ERPNext_PowerPlay.Migrations
                 {
                     ID = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    DocType = table.Column<int>(type: "INTEGER", nullable: false),
                     WarehouseFilter = table.Column<string>(type: "TEXT", nullable: true),
                     PrintEngine = table.Column<int>(type: "INTEGER", nullable: false),
-                    DocType = table.Column<int>(type: "INTEGER", nullable: false),
+                    FieldList = table.Column<string>(type: "TEXT", nullable: true),
+                    FilterList = table.Column<string>(type: "TEXT", nullable: true),
+                    Printer = table.Column<string>(type: "TEXT", nullable: true),
                     CopyName = table.Column<string>(type: "TEXT", nullable: true),
+                    Copies = table.Column<int>(type: "INTEGER", nullable: true),
+                    PageRange = table.Column<string>(type: "TEXT", nullable: true),
                     FontSize = table.Column<int>(type: "INTEGER", nullable: true),
                     Orientation = table.Column<int>(type: "INTEGER", nullable: false),
                     Scaling = table.Column<int>(type: "INTEGER", nullable: false),
-                    Printer = table.Column<string>(type: "TEXT", nullable: true),
-                    Copies = table.Column<int>(type: "INTEGER", nullable: true),
-                    PageRange = table.Column<string>(type: "TEXT", nullable: true),
+                    REPX_Template = table.Column<string>(type: "TEXT", nullable: false),
                     FrappeTemplateName = table.Column<string>(type: "TEXT", nullable: true),
                     LetterHead = table.Column<string>(type: "TEXT", nullable: true),
                     Compact = table.Column<bool>(type: "INTEGER", nullable: false),
@@ -57,7 +60,8 @@ namespace ERPNext_PowerPlay.Migrations
                 {
                     ID = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    Name = table.Column<string>(type: "TEXT", nullable: false)
+                    name = table.Column<string>(type: "TEXT", nullable: false),
+                    selected = table.Column<bool>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
