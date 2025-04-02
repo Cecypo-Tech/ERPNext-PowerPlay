@@ -130,6 +130,7 @@
             gv_PrintSettings.OptionsBehavior.AllowAddRows = DevExpress.Utils.DefaultBoolean.True;
             gv_PrintSettings.OptionsBehavior.EditingMode = DevExpress.XtraGrid.Views.Grid.GridEditingMode.EditFormInplace;
             gv_PrintSettings.OptionsView.NewItemRowPosition = DevExpress.XtraGrid.Views.Grid.NewItemRowPosition.Top;
+            gv_PrintSettings.InitNewRow += gv_PrintSettings_InitNewRow;
             // 
             // colID
             // 

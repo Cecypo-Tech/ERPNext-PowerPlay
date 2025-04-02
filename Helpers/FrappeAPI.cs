@@ -1,5 +1,10 @@
-﻿using ERPNext_PowerPlay.Models;
+﻿using DevExpress.DataAccess.DataFederation;
+using DevExpress.DataAccess.Native.Json;
+using ERPNext_PowerPlay.Models;
 using Serilog;
+using SQLitePCL;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Dynamic;
 using System.Net.Http;
 using System.Text.Json;
@@ -56,6 +61,8 @@ namespace ERPNext_PowerPlay.Helpers
 
         public async Task<Frappe_DocList.FrappeDocList> GetDocs2Print(PrinterSetting ps)
         {   //With cookies
+            Frappe_DocList.FrappeDocList docList = new Frappe_DocList.FrappeDocList();
+            docList.data = new List<Frappe_DocList.data>();
             try
             {
                 //for this ps.doctype, get all docs, with fileds and filters
@@ -73,7 +80,9 @@ namespace ERPNext_PowerPlay.Helpers
                 string fields = Regex.Replace(ps.FieldList, @"\r\n?|\n", "");
                 string filters = Regex.Replace(ps.FilterList, @"\r\n?|\n", "");
 
-                string FilterStr = string.Format("/api/resource/{0}}?fields={1}&filters=[{2}]&limit_page_length={3}",ps.DocType.ToString(), fields, filters, 10);
+                string doctype = ps.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
+
+                string FilterStr = string.Format("/api/resource/{0}?fields={1}&filters=[{2}]&limit_page_length={3}", doctype, fields, filters, 10);
 
                 //Get the docs
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}", Program.FrappeURL, FilterStr));
@@ -84,17 +93,74 @@ namespace ERPNext_PowerPlay.Helpers
                     response_qr.EnsureSuccessStatusCode();
 
                     //  //If preset fields;
-                    //Frappe_DocList.FrappeDocList docList = new Frappe_DocList.FrappeDocList();
                     //docList = await response_qr.Content.ReadFromJsonAsync<Frappe_DocList.FrappeDocList>();
                     //return docList;
 
                     //Dynamic list, because of customer_name, supplier_name, title.
+                    string json = await response_qr.Content.ReadAsStringAsync();
+                    Debug.WriteLine(json);
 
-                    dynamic data = JsonSerializer.Deserialize<ExpandoObject>(await response_qr.Content.ReadAsStringAsync());
-                    Console.WriteLine(data.GetType());
-                    Console.WriteLine(data.foo);
+                    JsonElement doc = JsonSerializer.Deserialize<JsonElement>(json);
+                    JsonElement docdata = JsonHelper.GetJsonElement(doc, "data");
 
-                    return new Frappe_DocList.FrappeDocList();
+                    if (docdata.ValueKind == JsonValueKind.Array)
+                    {
+                        //JsonElement edgesFirstElem =docdata.EnumerateArray().ElementAtOrDefault(index);
+                        string nameCursor = "";
+                        foreach (JsonElement jE in docdata.EnumerateArray())
+                        {
+                            try
+                            {
+                                JsonElement jsonElementName = JsonHelper.GetJsonElement(jE, "name");
+                                var docname = JsonHelper.GetJsonElementValue(jsonElementName);
+                                nameCursor = docname;
+                                JsonElement jsonElementTot = JsonHelper.GetJsonElement(jE, "grand_total");
+                                JsonElement jsonElementPrintCount = JsonHelper.GetJsonElement(jE, "custom_print_count");
+                                JsonElement jsonElementStatus = JsonHelper.GetJsonElement(jE, "status");
+
+                                JsonElement jsonElementDate = JsonHelper.GetJsonElement(jE, "date");
+                                if (jsonElementDate.ValueKind == JsonValueKind.Undefined) jsonElementDate = JsonHelper.GetJsonElement(jE, "posting_date");
+                                if (jsonElementDate.ValueKind == JsonValueKind.Undefined) jsonElementDate = JsonHelper.GetJsonElement(jE, "transaction_date");
+
+                                JsonElement jsonElementTitle = JsonHelper.GetJsonElement(jE, "customer");
+                                if (jsonElementTitle.ValueKind == JsonValueKind.Undefined) jsonElementTitle = JsonHelper.GetJsonElement(jE, "supplier");
+                                if (jsonElementTitle.ValueKind == JsonValueKind.Undefined) jsonElementTitle = JsonHelper.GetJsonElement(jE, "title");
+
+                                var title = JsonHelper.GetJsonElementValue(jsonElementTitle);
+
+                                var originalSrcString = JsonHelper.GetJsonElementValue(jsonElementDate);
+                                var grandTot = JsonHelper.GetJsonElementValue(jsonElementTot);
+                                var printCount = JsonHelper.GetJsonElementValue(jsonElementPrintCount);
+                                var status = JsonHelper.GetJsonElementValue(jsonElementStatus);
+
+                                docList.data.Add(new Frappe_DocList.data()
+                                {
+                                    date = Convert.ToDateTime(originalSrcString),
+                                    DocType = ps.DocType,
+                                    grand_total = Convert.ToDouble(grandTot),
+                                    custom_print_count = Convert.ToInt16(printCount),
+                                    name = docname.ToString(),
+                                    status = status.ToString(),
+                                    title = title.ToString()
+                                });
+                            }
+                            catch (Exception exJsonElement)
+                            {
+                                Log.Error(exJsonElement, "Error in Element {0}", nameCursor);
+                            }
+                        }
+
+
+                        //var originalSrcString = JsonHelper.GetJsonElementValue(jsonElement);
+
+
+                        //jsonElement =
+                        //    GetJsonElement(edgesFirstElem, "node.featuredImage.id");
+                        //originalIdString = GetJsonElementValue(jsonElement);
+                    }
+
+
+                    return docList;
                 }
             }
             catch (Exception exSQL)

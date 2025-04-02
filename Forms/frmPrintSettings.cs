@@ -1,4 +1,5 @@
-﻿using DevExpress.DataAccess.Wizard.Model;
+﻿using DevExpress.CodeParser;
+using DevExpress.DataAccess.Wizard.Model;
 using DevExpress.Office.Utils;
 using DevExpress.XtraEditors;
 using DevExpress.XtraEditors.Controls;
@@ -27,6 +28,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Controls;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace ERPNext_PowerPlay
 {
@@ -216,18 +218,21 @@ namespace ERPNext_PowerPlay
                 foreach (PrinterSetting ps in db.PrinterSetting.Where(x => x.Enabled).ToList())
                 {
                     Frappe_DocList.FrappeDocList DocList = await fapi.GetDocs2Print(ps);
-                    Log.Information("Collected {0} Documents in {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
-
-                    foreach (Frappe_DocList.data fd in DocList.data)
+                    if (DocList != null)
                     {
-                        bool processed = await p.PrintDoc(fd);//.Frappe_GetDoc(fd.name, ps);
-                        if (processed)
-                        {
-                            await fapi.UpdateCount(string.Format("/api/resource/", fd.DocType.ToString()), fd);
-                        }
-                    }
-                    Log.Information("Princed {0} Documents in: {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
+                        Log.Information("Collected {0} Documents in {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
 
+                        foreach (Frappe_DocList.data fd in DocList.data)
+                        {
+                            bool processed = await p.PrintDoc(fd);//.Frappe_GetDoc(fd.name, ps);
+                            if (processed)
+                            {
+                                string doctype = ps.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
+                                await fapi.UpdateCount(string.Format("/api/resource/{0}", doctype), fd);
+                            }
+                        }
+                        Log.Information("Princed {0} Documents in: {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
+                    }
                 }
 
             }
@@ -235,6 +240,12 @@ namespace ERPNext_PowerPlay
             {
                 XtraMessageBox.Show(ex.Message + System.Environment.NewLine + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void gv_PrintSettings_InitNewRow(object sender, DevExpress.XtraGrid.Views.Grid.InitNewRowEventArgs e)
+        {
+            this.gv_PrintSettings.SetRowCellValue(e.RowHandle, "Enabled", true);
+            this.gv_PrintSettings.SetRowCellValue(e.RowHandle, "Copies", 1);
         }
     }
 }

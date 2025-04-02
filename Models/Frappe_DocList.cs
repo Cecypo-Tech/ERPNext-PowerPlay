@@ -17,7 +17,7 @@ namespace ERPNext_PowerPlay.Models
             public DocType DocType { get; set; }
             public string name { get; set; }
             public string title { get; set; }   //Can be any of customer_name, supplier_name, title
-            public string date { get; set; }    //Can be any of posting_date, transaction_date, date
+            public DateTime date { get; set; }    //Can be any of posting_date, transaction_date, date
             public string status { get; set; }
             public double grand_total { get; set; }
 

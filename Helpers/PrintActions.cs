@@ -25,6 +25,7 @@ using DevExpress.XtraPrinting.Native;
 using DevExpress.XtraCharts.Designer.Native;
 using DevExpress.CodeParser;
 using DevExpress.LookAndFeel;
+using System.ComponentModel;
 
 
 namespace ERPNext_PowerPlay.Helpers
@@ -64,7 +65,8 @@ namespace ERPNext_PowerPlay.Helpers
             {
                 if (PS.LetterHead == null) PS.LetterHead = "No Letterhead";
                 string frappe_printfilter = "doctype=_doctype_&name=_docname_&format=_printformat_&no_letterhead=_noletterhead_&letterhead=_letterheadnname_&settings={\"compact_item_print\":_compact_,\"print_uom_after_quantity\":_uom_}";
-                frappe_printfilter = frappe_printfilter.Replace("_doctype_", PS.DocType.ToString());
+                string doctype = PS.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
+                frappe_printfilter = frappe_printfilter.Replace("_doctype_", doctype);
                 frappe_printfilter = frappe_printfilter.Replace("_printformat_", PS.FrappeTemplateName);
                 frappe_printfilter = frappe_printfilter.Replace("_letterheadnname_", PS.LetterHead);
                 if (String.IsNullOrEmpty(PS.LetterHead))
@@ -131,7 +133,8 @@ namespace ERPNext_PowerPlay.Helpers
                                 success = await Task.Run(() => PrintGhostScript(doc.name, printrow, filename));
                                 break;
                             case PrintEngine.CustomTemplate:
-                                string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", printrow.DocType.ToString()), doc.name); //Full JSON for this document
+                                string doctype = printrow.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
+                                string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", doctype), doc.name); //Full JSON for this document
                                 success = await Task.Run(() => PrintREPX(doc.name, jsonDoc, printrow));
                                 break;
                         }
@@ -241,8 +244,8 @@ namespace ERPNext_PowerPlay.Helpers
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "[PrintError] {0}", ex.Message);
-                if (ex.InnerException != null) Log.Error(ex, "[PrintError] {0}", ex.InnerException.Message);
+                Log.Error(ex, "[REPX.PrintError] {0}", ex.Message);
+                if (ex.InnerException != null) Log.Error(ex, "[REPX.PrintError] {0}", ex.InnerException.Message);
                 return false;
             }
         }
@@ -269,8 +272,8 @@ namespace ERPNext_PowerPlay.Helpers
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "[PrintError] {0}", ex.Message);
-                if (ex.InnerException != null) Log.Error(ex, "[PrintError] {0}", ex.InnerException.Message);
+                Log.Error(ex, "[SM.PrintError] {0}", ex.Message);
+                if (ex.InnerException != null) Log.Error(ex, "[SM.PrintError] {0}", ex.InnerException.Message);
                 return false;
             }
         }
@@ -356,8 +359,8 @@ namespace ERPNext_PowerPlay.Helpers
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "[PrintError] {0}", ex.Message);
-                if (ex.InnerException != null) Log.Error(ex, "[PrintError] {0}", ex.InnerException.Message);
+                Log.Error(ex, "[GS.PrintError] {0}", ex.Message);
+                if (ex.InnerException != null) Log.Error(ex, "[GS.PrintError] {0}", ex.InnerException.Message);
                 return false;
             }
         }
@@ -487,8 +490,8 @@ namespace ERPNext_PowerPlay.Helpers
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "[PrintError] {0}", ex.Message);
-                if (ex.InnerException != null) Log.Error(ex, "[PrintError] {0}", ex.InnerException.Message);
+                Log.Error(ex, "[DX.PrintError] {0}", ex.Message);
+                if (ex.InnerException != null) Log.Error(ex, "[DX.PrintError] {0}", ex.InnerException.Message);
                 return false;
             }
         }
