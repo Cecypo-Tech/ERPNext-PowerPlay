@@ -4,6 +4,7 @@ using DevExpress.Mvvm.Native;
 using DevExpress.XtraEditors;
 using ERPNext_PowerPlay.Helpers;
 using ERPNext_PowerPlay.Models;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -60,7 +61,7 @@ namespace ERPNext_PowerPlay
                 using (var client = new HttpClient(handler))
                 {
                     var uri = new Uri(txtURL.Text + "/api/method/login");
-                    var request = new HttpRequestMessage(HttpMethod.Post,uri  );
+                    var request = new HttpRequestMessage(HttpMethod.Post, uri);
                     request.Headers.Add("Accept", "application/json");
                     dynamic login = new System.Dynamic.ExpandoObject();
                     login.usr = txtUSER.Text;
@@ -81,6 +82,7 @@ namespace ERPNext_PowerPlay
                                 Program.FrappeUser = txtUSER.Text;
                                 Program.FrappeURL = txtURL.Text;
                                 Program.Cookies.Add(cookieContainer.GetCookies(uri));
+                                GetWarehouses();    //List warehouses
                                 DialogResult = DialogResult.OK;
                                 return;
                             }
@@ -97,16 +99,51 @@ namespace ERPNext_PowerPlay
                         XtraMessageBox.Show("Login Failed. Please try again.", "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
-                     
+
                 btnLogin.Enabled = true;
             }
             catch (Exception ex)
             {
-                Log.Error(ex.Message );
+                Log.Error(ex.Message);
                 XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 btnLogin.Enabled = true;
             }
-          
+
+        }
+        private async void GetWarehouses()
+        {
+            try
+            {
+                AppDbContext db = new AppDbContext();
+                //Get Warehouse List & save to DB
+                FrappeAPI fapi = new FrappeAPI();
+                //Get warehouses once and save to DB. In login?
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}?{2}", Program.FrappeURL, "/api/resource/Warehouse", "&filters=[[\"Warehouse\",\"is_group\",\"=\",\"0\"]]"));
+                using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
+                using (var client = new HttpClient(handler) { BaseAddress = new Uri(Program.FrappeURL) })
+                {
+                    HttpResponseMessage response_qr = await client.SendAsync(request);
+                    response_qr.EnsureSuccessStatusCode();
+
+                    string result = await response_qr.Content.ReadAsStringAsync();
+                    if (result != null)
+                    {
+                        db.Warehouse.ExecuteDelete();
+                        WarehouseRoot waredata = JsonSerializer.Deserialize<WarehouseRoot>(result.ToString());
+                        //AppDbContext db = new AppDbContext();
+                        foreach (var ware in waredata.data)
+                            db.Add<Warehouse>(new Warehouse() { name = ware.name });
+
+                        Log.Information("Updated Warehouse List (Count:{0})", waredata.data.Count());
+                    }
+                    db.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message);
+                XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }

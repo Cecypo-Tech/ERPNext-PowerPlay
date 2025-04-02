@@ -42,6 +42,7 @@ namespace ERPNext_PowerPlay
 
             gc_PrintSettings.DataSource = db.PrinterSetting.Local.ToBindingList();
             gv_PrintSettings.PopulateColumns();
+            gv_PrintSettings.OptionsEditForm.EditFormColumnCount = 4;
             gv_PrintSettings.Columns["FrappeTemplateName"].OptionsEditForm.StartNewRow = true;
             foreach (DevExpress.XtraGrid.Columns.GridColumn col in gv_PrintSettings.Columns.Where(x => x.FieldName.StartsWith("Date") || x.FieldName == "ID"))
             {
@@ -76,11 +77,16 @@ namespace ERPNext_PowerPlay
 
             gv_PrintSettings.Columns["REPX_Template"].ColumnEdit = repository_repx;
 
-            RepositoryItemMemoEdit memoFilter = new RepositoryItemMemoEdit();
-            gv_PrintSettings.Columns["DocFilter"].ColumnEdit = memoFilter;
-            gv_PrintSettings.Columns["DocFilter"].OptionsEditForm.ColumnSpan = 2;
-            gv_PrintSettings.Columns["DocFilter"].OptionsEditForm.RowSpan = 2;
-            gv_PrintSettings.Columns["DocFilter"].OptionsEditForm.UseEditorColRowSpan = true;
+            RepositoryItemMemoEdit memoFilter1 = new RepositoryItemMemoEdit();
+            gv_PrintSettings.Columns["FieldList"].ColumnEdit = memoFilter1;
+            gv_PrintSettings.Columns["FieldList"].OptionsEditForm.ColumnSpan = 1;
+            gv_PrintSettings.Columns["FieldList"].OptionsEditForm.RowSpan = 2;
+            gv_PrintSettings.Columns["FieldList"].OptionsEditForm.UseEditorColRowSpan = true;
+            RepositoryItemMemoEdit memoFilter2 = new RepositoryItemMemoEdit();
+            gv_PrintSettings.Columns["FilterList"].ColumnEdit = memoFilter2;
+            gv_PrintSettings.Columns["FilterList"].OptionsEditForm.ColumnSpan = 2;
+            gv_PrintSettings.Columns["FilterList"].OptionsEditForm.RowSpan = 2;
+            gv_PrintSettings.Columns["FilterList"].OptionsEditForm.UseEditorColRowSpan = true;
         }
 
         private void Repxbuttonclick(object sender, ButtonPressedEventArgs e)

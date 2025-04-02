@@ -1,4 +1,5 @@
-﻿using DevExpress.XtraBars;
+﻿using DevExpress.CodeParser;
+using DevExpress.XtraBars;
 using DevExpress.XtraPrinting.Native;
 using DevExpress.XtraTabbedMdi;
 using ERPNext_PowerPlay.Forms;
@@ -10,6 +11,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -75,12 +77,27 @@ namespace ERPNext_PowerPlay
                 string docName = (string)barEditItem_DocNamePreview.EditValue;
                 foreach (PrinterSetting ps in db.PrinterSetting.Where(x => x.DocType == d))
                 {
-                    byteData = await pa.getFrappeDoc_AsBytes(docName, ps);
-                    await Task.Run(() => pa.PrintDX(docName, byteData, ps, true));
-                    await Task.Run(() => pa.PrintDX(docName, byteData, ps, true));
+                    //Show FrappePDF (opens in Default PDF Viewer)
+                    switch (ps.PrintEngine)
+                    {
+                        case PrintEngine.FrappePDF:
+                            byteData = await pa.getFrappeDoc_AsBytes(docName, ps);
+                            await Task.Run(() => pa.PrintDX(docName, byteData, ps, true));
+                            break;
+                        case PrintEngine.Ghostscript:
+                            Log.Information("Ghostscript does not have a preview method. Select FrappePDF or CustomTemplate.");
+                            break;
+                        case PrintEngine.SumatraPDF:
+                            Log.Information("SumatraPDF does not have a preview method. Select FrappePDF or CustomTemplate.");
+                            break;
+                        case PrintEngine.CustomTemplate:
+                            string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", ps.DocType.ToString()), docName); //Full JSON for this document
+                            await Task.Run(() => pa.PrintREPX(docName, jsonDoc, ps, true));
+                            break;
+                    }
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Log.Error(ex, "Error in Print Preview");
             }

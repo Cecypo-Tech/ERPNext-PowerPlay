@@ -36,7 +36,7 @@ namespace ERPNext_PowerPlay.Helpers
         //{
         //    try
         //    {
-               
+
         //        PrintDoc(DocName);
         //        //string m = System.Text.Encoding.UTF8.GetString(b);
         //        //using (MemoryStream ms = new MemoryStream(b))
@@ -96,17 +96,17 @@ namespace ERPNext_PowerPlay.Helpers
         public async Task<bool> PrintDoc(Frappe_DocList.data doc)
         {
             try
-            {   
+            {
                 //Used then needed.
                 string filepart = Path.GetRandomFileName() + "_" + doc.name + ".pdf";
                 filename = Path.Combine(Path.GetTempPath(), filepart);
                 byte[] byteData;
                 bool success = false;
-                
+
                 AppDbContext db = new AppDbContext();
                 db.PrinterSetting.Load();
                 List<PrinterSetting> ps = db.PrinterSetting.ToList();
-                foreach (PrinterSetting printrow in db.PrinterSetting.Where(x=> x.DocType == doc.DocType))
+                foreach (PrinterSetting printrow in db.PrinterSetting.Where(x => x.DocType == doc.DocType))
                 {
                     if (PrinterExists(printrow.Printer))
                     {
@@ -121,7 +121,7 @@ namespace ERPNext_PowerPlay.Helpers
                                 using (MemoryStream ms = new MemoryStream(byteData))
                                     File.WriteAllBytes(filename, ms.ToArray());
 
-                                success = await Task.Run(() => PrintSumatra(doc.name,  printrow, filename));
+                                success = await Task.Run(() => PrintSumatra(doc.name, printrow, filename));
                                 break;
                             case PrintEngine.Ghostscript:
                                 byteData = await getFrappeDoc_AsBytes(doc.name, printrow);
@@ -135,7 +135,7 @@ namespace ERPNext_PowerPlay.Helpers
                                 success = await Task.Run(() => PrintREPX(doc.name, jsonDoc, printrow));
                                 break;
                         }
-                         try
+                        try
                         {
                             File.Delete(filename);
                         }
@@ -143,7 +143,7 @@ namespace ERPNext_PowerPlay.Helpers
                         {
                             Log.Error(exFileDelete, "Failed to delete temp file {0}", filename);
                         }
-                        if (success) Log.Information("[Printed] {0} -> {1}.{2}",doc.name, printrow.PrintEngine.ToString(), printrow.Printer.ToString());
+                        if (success) Log.Information("[Printed] {0} -> {1}.{2}", doc.name, printrow.PrintEngine.ToString(), printrow.Printer.ToString());
 
                     }
                     else
@@ -156,7 +156,7 @@ namespace ERPNext_PowerPlay.Helpers
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error in PrintDoc with {0}.{1}}" , doc.DocType, doc.name);
+                Log.Error(ex, "Error in PrintDoc with {0}.{1}}", doc.DocType, doc.name);
                 return false;
             }
 
@@ -189,7 +189,7 @@ namespace ERPNext_PowerPlay.Helpers
                 utilName);
 
 
-        public bool PrintREPX(string DocName, string jsonDoc, PrinterSetting copyData)
+        public bool PrintREPX(string DocName, string jsonDoc, PrinterSetting copyData, bool ForcePreview = false)
         {
             try
             {
@@ -219,18 +219,22 @@ namespace ERPNext_PowerPlay.Helpers
                     //report.DataMember = "data";
                     //ORIENTATION SET IN REPX FILE
                     report.CreateDocument();
-                    for (int i = 0; i < copyData.Copies; i++)
-                        report.Print(copyData.Printer);
-                    DevExpress.XtraPrinting.PdfExportOptions ops = new DevExpress.XtraPrinting.PdfExportOptions();
-                    ops.DocumentOptions.Title = DocName;
-                    ops.DocumentOptions.Producer = Application.ProductName;
-                    ops.DocumentOptions.Author = Application.ProductName;
-                    ops.DocumentOptions.Application = Application.ProductName;
-                    ops.DocumentOptions.Subject = "by Cecypo.Tech";
-                    ops.DocumentOptions.Keywords = "CECYPO, CECYPO.TECH, ERPNext, TIMS, eTIMS";
-
-                    //Log.Information("Exporting file to: {0}" + fi.FullName);
-                    //report.ExportToPdf(fi.FullName, ops);
+                    if (ForcePreview)
+                    {
+                        report.ShowRibbonPreview();
+                    }
+                    else
+                    {
+                        for (int i = 0; i < copyData.Copies; i++)
+                            report.Print(copyData.Printer);
+                        DevExpress.XtraPrinting.PdfExportOptions ops = new DevExpress.XtraPrinting.PdfExportOptions();
+                        ops.DocumentOptions.Title = DocName;
+                        ops.DocumentOptions.Producer = Application.ProductName;
+                        ops.DocumentOptions.Author = Application.ProductName;
+                        ops.DocumentOptions.Application = Application.ProductName;
+                        ops.DocumentOptions.Subject = "by Cecypo.Tech";
+                        ops.DocumentOptions.Keywords = "CECYPO, CECYPO.TECH, ERPNext, TIMS, eTIMS";
+                    }
                 });
 
                 return true;
