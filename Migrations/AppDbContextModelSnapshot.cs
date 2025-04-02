@@ -73,7 +73,7 @@ namespace ERPNext_PowerPlay.Migrations
                     b.Property<bool>("Compact")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("Copies")
+                    b.Property<int>("Copies")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CopyName")
@@ -90,6 +90,9 @@ namespace ERPNext_PowerPlay.Migrations
                         .HasDefaultValueSql("date('now')");
 
                     b.Property<int>("DocType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Enabled")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("FieldList")

@@ -50,12 +50,19 @@
             ribbonStatusBar = new DevExpress.XtraBars.Ribbon.RibbonStatusBar();
             documentManager1 = new DevExpress.XtraBars.Docking2010.DocumentManager(components);
             tabbedView1 = new DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView(components);
+            dockManager1 = new DevExpress.XtraBars.Docking.DockManager(components);
+            dockPanel_Log = new DevExpress.XtraBars.Docking.DockPanel();
+            dockPanel1_Container = new DevExpress.XtraBars.Docking.ControlContainer();
+            ucLog1 = new ERPNext_PowerPlay.Forms.ucLog();
             ((System.ComponentModel.ISupportInitialize)ribbon).BeginInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemTextEdit_PreviewDocName).BeginInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemLookUp_PreviewDocType).BeginInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemComboBox_PreviewDocTypes).BeginInit();
             ((System.ComponentModel.ISupportInitialize)documentManager1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)tabbedView1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dockManager1).BeginInit();
+            dockPanel_Log.SuspendLayout();
+            dockPanel1_Container.SuspendLayout();
             SuspendLayout();
             // 
             // ribbon
@@ -197,12 +204,47 @@
             documentManager1.View = tabbedView1;
             documentManager1.ViewCollection.AddRange(new DevExpress.XtraBars.Docking2010.Views.BaseView[] { tabbedView1 });
             // 
+            // dockManager1
+            // 
+            dockManager1.Form = this;
+            dockManager1.RootPanels.AddRange(new DevExpress.XtraBars.Docking.DockPanel[] { dockPanel_Log });
+            dockManager1.TopZIndexControls.AddRange(new string[] { "DevExpress.XtraBars.BarDockControl", "DevExpress.XtraBars.StandaloneBarDockControl", "System.Windows.Forms.MenuStrip", "System.Windows.Forms.StatusStrip", "System.Windows.Forms.StatusBar", "DevExpress.XtraBars.Ribbon.RibbonStatusBar", "DevExpress.XtraBars.Ribbon.RibbonControl", "DevExpress.XtraBars.Navigation.OfficeNavigationBar", "DevExpress.XtraBars.Navigation.TileNavPane", "DevExpress.XtraBars.TabFormControl", "DevExpress.XtraBars.FluentDesignSystem.FluentDesignFormControl", "DevExpress.XtraBars.ToolbarForm.ToolbarFormControl" });
+            // 
+            // dockPanel_Log
+            // 
+            dockPanel_Log.Controls.Add(dockPanel1_Container);
+            dockPanel_Log.Dock = DevExpress.XtraBars.Docking.DockingStyle.Right;
+            dockPanel_Log.ID = new Guid("5eeda2e5-436e-40ac-b860-75a941c1d850");
+            dockPanel_Log.Location = new Point(689, 170);
+            dockPanel_Log.Name = "dockPanel_Log";
+            dockPanel_Log.Options.ShowCloseButton = false;
+            dockPanel_Log.OriginalSize = new Size(200, 200);
+            dockPanel_Log.Size = new Size(200, 246);
+            dockPanel_Log.Text = "Log";
+            // 
+            // dockPanel1_Container
+            // 
+            dockPanel1_Container.Controls.Add(ucLog1);
+            dockPanel1_Container.Location = new Point(4, 31);
+            dockPanel1_Container.Name = "dockPanel1_Container";
+            dockPanel1_Container.Size = new Size(193, 212);
+            dockPanel1_Container.TabIndex = 0;
+            // 
+            // ucLog1
+            // 
+            ucLog1.Dock = DockStyle.Fill;
+            ucLog1.Location = new Point(0, 0);
+            ucLog1.Name = "ucLog1";
+            ucLog1.Size = new Size(193, 212);
+            ucLog1.TabIndex = 0;
+            // 
             // frmMain
             // 
             Appearance.Options.UseFont = true;
             AutoScaleDimensions = new SizeF(6F, 13F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(889, 447);
+            Controls.Add(dockPanel_Log);
             Controls.Add(ribbonStatusBar);
             Controls.Add(ribbon);
             IconOptions.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("frmMain.IconOptions.SvgImage");
@@ -210,7 +252,7 @@
             Name = "frmMain";
             Ribbon = ribbon;
             StatusBar = ribbonStatusBar;
-            Text = "frmMain";
+            Text = "ERPNext PowerPlay";
             WindowState = FormWindowState.Maximized;
             ((System.ComponentModel.ISupportInitialize)ribbon).EndInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemTextEdit_PreviewDocName).EndInit();
@@ -218,6 +260,9 @@
             ((System.ComponentModel.ISupportInitialize)repositoryItemComboBox_PreviewDocTypes).EndInit();
             ((System.ComponentModel.ISupportInitialize)documentManager1).EndInit();
             ((System.ComponentModel.ISupportInitialize)tabbedView1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dockManager1).EndInit();
+            dockPanel_Log.ResumeLayout(false);
+            dockPanel1_Container.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -244,5 +289,9 @@
         private DevExpress.XtraBars.BarButtonItem barButtonItem1;
         private DevExpress.XtraBars.BarEditItem barEditItem_DoctypePreview;
         private DevExpress.XtraEditors.Repository.RepositoryItemLookUpEdit repositoryItemLookUp_PreviewDocType;
+        private DevExpress.XtraBars.Docking.DockPanel dockPanel_Log;
+        private DevExpress.XtraBars.Docking.ControlContainer dockPanel1_Container;
+        private DevExpress.XtraBars.Docking.DockManager dockManager1;
+        private Forms.ucLog ucLog1;
     }
 }

@@ -44,6 +44,30 @@ namespace ERPNext_PowerPlay
             gv_PrintSettings.PopulateColumns();
             gv_PrintSettings.OptionsEditForm.EditFormColumnCount = 4;
             gv_PrintSettings.Columns["FrappeTemplateName"].OptionsEditForm.StartNewRow = true;
+            gv_PrintSettings.Columns["REPX_Template"].Caption = ".REPX Template";
+
+            //Hide in grid, but show in EditForm
+            gv_PrintSettings.Columns["FieldList"].Visible = false;
+            gv_PrintSettings.Columns["FieldList"].OptionsEditForm.Visible = DevExpress.Utils.DefaultBoolean.True;
+            gv_PrintSettings.Columns["FilterList"].Visible = false;
+            gv_PrintSettings.Columns["FilterList"].OptionsEditForm.Visible = DevExpress.Utils.DefaultBoolean.True;
+            gv_PrintSettings.Columns["PageRange"].Visible = false;
+            gv_PrintSettings.Columns["PageRange"].OptionsEditForm.Visible = DevExpress.Utils.DefaultBoolean.True;
+            gv_PrintSettings.Columns["FontSize"].Visible = false;
+            gv_PrintSettings.Columns["FontSize"].OptionsEditForm.Visible = DevExpress.Utils.DefaultBoolean.True;
+            gv_PrintSettings.Columns["Orientation"].Visible = false;
+            gv_PrintSettings.Columns["Orientation"].OptionsEditForm.Visible = DevExpress.Utils.DefaultBoolean.True;
+            gv_PrintSettings.Columns["Scaling"].Visible = false;
+            gv_PrintSettings.Columns["Scaling"].OptionsEditForm.Visible = DevExpress.Utils.DefaultBoolean.True;
+            gv_PrintSettings.Columns["REPX_Template"].Visible = false;
+            gv_PrintSettings.Columns["REPX_Template"].OptionsEditForm.Visible = DevExpress.Utils.DefaultBoolean.True;
+            gv_PrintSettings.Columns["LetterHead"].Visible = false;
+            gv_PrintSettings.Columns["LetterHead"].OptionsEditForm.Visible = DevExpress.Utils.DefaultBoolean.True;
+            gv_PrintSettings.Columns["Compact"].Visible = false;
+            gv_PrintSettings.Columns["Compact"].OptionsEditForm.Visible = DevExpress.Utils.DefaultBoolean.True;
+            gv_PrintSettings.Columns["UOM"].Visible = false;
+            gv_PrintSettings.Columns["UOM"].OptionsEditForm.Visible = DevExpress.Utils.DefaultBoolean.True;
+
             foreach (DevExpress.XtraGrid.Columns.GridColumn col in gv_PrintSettings.Columns.Where(x => x.FieldName.StartsWith("Date") || x.FieldName == "ID"))
             {
                 col.OptionsColumn.AllowEdit = false;
@@ -164,7 +188,7 @@ namespace ERPNext_PowerPlay
                 {
                     if (gv_PrintSettings.GetRowCellValue(i, "Copies") == null) gv_PrintSettings.SetRowCellValue(i, "Copies", 1);
                 }
-                
+
                 gv_PrintSettings.UpdateCurrentRow();
                 db.SaveChanges();
             }
@@ -186,63 +210,25 @@ namespace ERPNext_PowerPlay
             {
                 //Get Warehouse List & save to DB
                 FrappeAPI fapi = new FrappeAPI();
-                //Get warehouses once and save to DB. In login?
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}?{2}", Program.FrappeURL, "/api/resource/Warehouse", "&filters=[[\"Warehouse\",\"is_group\",\"=\",\"0\"]]"));
-                using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
-                using (var client = new HttpClient(handler) { BaseAddress = new Uri(Program.FrappeURL) })
+                var p = new PrintActions();
+                Stopwatch clock = Stopwatch.StartNew();
+
+                foreach (PrinterSetting ps in db.PrinterSetting.Where(x => x.Enabled).ToList())
                 {
-                    HttpResponseMessage response_qr = await client.SendAsync(request);
-                    response_qr.EnsureSuccessStatusCode();
+                    Frappe_DocList.FrappeDocList DocList = await fapi.GetDocs2Print(ps);
+                    Log.Information("Collected {0} Documents in {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
 
-                    string result = await response_qr.Content.ReadAsStringAsync();
-                    if (result != null)
+                    foreach (Frappe_DocList.data fd in DocList.data)
                     {
-                        db.Warehouse.ExecuteDelete();
-                        WarehouseRoot waredata = JsonSerializer.Deserialize<WarehouseRoot>(result.ToString());
-                        //AppDbContext db = new AppDbContext();
-                        foreach (var ware in waredata.data)
-                            db.Add<Warehouse>(new Warehouse() { name = ware.name });
-                    }
-                    db.SaveChanges();
-
-                    var p = new PrintActions();
-
-                    Stopwatch clock = Stopwatch.StartNew();
-
-
-                    foreach (ERPNext_PowerPlay.Models.PrinterSetting ps in db.PrinterSetting.ToList())
-                    {
-                        Frappe_DocList.FrappeDocList DocList = await fapi.GetDocs2Print(ps);
-                        Log.Information("Collected Documents in: {0}s", clock.Elapsed.TotalSeconds.ToString());
-
-                        //await p.Frappe_GetDoc("INV-00632", ps); //Tests a single doc.
-                        foreach (Frappe_DocList.data fd in DocList.data)
+                        bool processed = await p.PrintDoc(fd);//.Frappe_GetDoc(fd.name, ps);
+                        if (processed)
                         {
-                            bool processed = await p.PrintDoc(fd);//.Frappe_GetDoc(fd.name, ps);
-                            if (processed)
-                            {
-                                await fapi.UpdateCount("/api/resource/Sales Invoice", fd);
-                            }
+                            await fapi.UpdateCount(string.Format("/api/resource/", fd.DocType.ToString()), fd);
                         }
-                        Log.Information("Princed {0} Documents in: {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
-
                     }
+                    Log.Information("Princed {0} Documents in: {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
+
                 }
-
-                //request.Headers.Add("Accept", "application/json");
-                //request.Headers.co
-                ////request.Headers.Add("Authorization", "token " + string.Join(":", Program.AppUser));
-                //HttpResponseMessage response_qr = await client.SendAsync(request);
-                //response_qr.EnsureSuccessStatusCode();
-                //Log.Information("[API] Fetch Warehouse List successful!");
-                //string result = await response_qr.Content.ReadAsStringAsync();
-                //if (result != null)
-                //{
-                //    List<Warehouse> waredata = JsonSerializer.Deserialize<List<Warehouse>>(result.ToString());
-                //    AppDbContext db = new AppDbContext();
-                //    db.Warehouse.AddRange(waredata);
-                //}
-
 
             }
             catch (Exception ex)

@@ -23,7 +23,6 @@ namespace ERPNext_PowerPlay
     {
         AppDbContext db = new AppDbContext();
 
-        private static readonly ILogger _logger = Log.ForContext<frmMain>();
         bool _LoggedIn = false;
         public frmMain()
         {
@@ -32,7 +31,6 @@ namespace ERPNext_PowerPlay
             //Preview Doctypes
             repositoryItemLookUp_PreviewDocType.DataSource = Enum.GetValues(typeof(DocType));
         }
-
 
         private void btnLogin_ItemClick(object sender, ItemClickEventArgs e)
         {
@@ -43,7 +41,6 @@ namespace ERPNext_PowerPlay
                 btnLogout.Enabled = true;
                 _LoggedIn = true;
             }
-
         }
 
         private void btnLogout_ItemClick(object sender, ItemClickEventArgs e)
@@ -75,7 +72,7 @@ namespace ERPNext_PowerPlay
                 PrintActions pa = new PrintActions();
                 DocType d = (DocType)barEditItem_DoctypePreview.EditValue;
                 string docName = (string)barEditItem_DocNamePreview.EditValue;
-                foreach (PrinterSetting ps in db.PrinterSetting.Where(x => x.DocType == d))
+                foreach (PrinterSetting ps in db.PrinterSetting.Where(x => x.Enabled && x.DocType == d))
                 {
                     //Show FrappePDF (opens in Default PDF Viewer)
                     switch (ps.PrintEngine)
@@ -85,10 +82,10 @@ namespace ERPNext_PowerPlay
                             await Task.Run(() => pa.PrintDX(docName, byteData, ps, true));
                             break;
                         case PrintEngine.Ghostscript:
-                            Log.Information("Ghostscript does not have a preview method. Select FrappePDF or CustomTemplate.");
+                            Serilog.Log.Information("Ghostscript does not have a preview method. Select FrappePDF or CustomTemplate.");
                             break;
                         case PrintEngine.SumatraPDF:
-                            Log.Information("SumatraPDF does not have a preview method. Select FrappePDF or CustomTemplate.");
+                            Serilog.Log.Information("SumatraPDF does not have a preview method. Select FrappePDF or CustomTemplate.");
                             break;
                         case PrintEngine.CustomTemplate:
                             string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", ps.DocType.ToString()), docName); //Full JSON for this document
@@ -99,7 +96,7 @@ namespace ERPNext_PowerPlay
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error in Print Preview");
+                Serilog.Log.Error(ex, "Error in Print Preview");
             }
         }
     }

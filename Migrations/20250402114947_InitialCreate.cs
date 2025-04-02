@@ -29,6 +29,7 @@ namespace ERPNext_PowerPlay.Migrations
                 {
                     ID = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
+                    Enabled = table.Column<bool>(type: "INTEGER", nullable: false),
                     DocType = table.Column<int>(type: "INTEGER", nullable: false),
                     WarehouseFilter = table.Column<string>(type: "TEXT", nullable: true),
                     PrintEngine = table.Column<int>(type: "INTEGER", nullable: false),
@@ -36,7 +37,7 @@ namespace ERPNext_PowerPlay.Migrations
                     FilterList = table.Column<string>(type: "TEXT", nullable: true),
                     Printer = table.Column<string>(type: "TEXT", nullable: true),
                     CopyName = table.Column<string>(type: "TEXT", nullable: true),
-                    Copies = table.Column<int>(type: "INTEGER", nullable: true),
+                    Copies = table.Column<int>(type: "INTEGER", nullable: false),
                     PageRange = table.Column<string>(type: "TEXT", nullable: true),
                     FontSize = table.Column<int>(type: "INTEGER", nullable: true),
                     Orientation = table.Column<int>(type: "INTEGER", nullable: false),

@@ -11,9 +11,9 @@ using System.Windows.Forms;
 
 namespace ERPNext_PowerPlay.Forms
 {
-    public partial class ucLogs : DevExpress.XtraEditors.XtraUserControl
+    public partial class ucLog : DevExpress.XtraEditors.XtraUserControl
     {
-        public ucLogs()
+        public ucLog()
         {
             InitializeComponent();
         }

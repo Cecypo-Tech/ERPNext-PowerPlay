@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ERPNext_PowerPlay.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250402093305_InitialCreate")]
+    [Migration("20250402114947_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -76,7 +76,7 @@ namespace ERPNext_PowerPlay.Migrations
                     b.Property<bool>("Compact")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("Copies")
+                    b.Property<int>("Copies")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("CopyName")
@@ -93,6 +93,9 @@ namespace ERPNext_PowerPlay.Migrations
                         .HasDefaultValueSql("date('now')");
 
                     b.Property<int>("DocType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Enabled")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("FieldList")

@@ -33,7 +33,6 @@ namespace ERPNext_PowerPlay
             MyAppDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + Path.DirectorySeparatorChar + Application.ProductName ;
             Log.Logger = new LoggerConfiguration()
                         .Enrich.FromLogContext()
-                        .WriteToSimpleAndRichTextBox()
                         .WriteToGridView()
                         .WriteTo.File(path: Program.MyAppDir + @"\\log.txt", rollingInterval: RollingInterval.Day, rollOnFileSizeLimit: true, retainedFileCountLimit: 90)
                         .CreateLogger();

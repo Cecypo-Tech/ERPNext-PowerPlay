@@ -1,18 +1,9 @@
-﻿using DevExpress.DataAccess.Native.Web;
-using DevExpress.XtraEditors.Filtering.Templates;
-using DevExpress.XtraReports.Templates;
-using DevExpress.XtraRichEdit.Import.EPub;
-using ERPNext_PowerPlay.Models;
+﻿using ERPNext_PowerPlay.Models;
 using Serilog;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using System.Dynamic;
 using System.Net.Http;
-using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace ERPNext_PowerPlay.Helpers
 {
@@ -67,26 +58,43 @@ namespace ERPNext_PowerPlay.Helpers
         {   //With cookies
             try
             {
-               //for this ps.doctype, get all docs, with filters
-               //fields + filters
-                string FilterStr = string.Format("/api/resource/Sales Invoice?fields=[\"name\", \"customer\", \"posting_date\", \"docstatus\", \"status\", \"etr_invoice_number\"," +
-                                                    "\"etr_invoice_number\", \"total_taxes_and_charges\", \"total\"]" +
-                                                    "&filters=[" +
-                                                    "[\"Sales Invoice\",\"docstatus\",\"=\",\"1\"]" +
-                                                    ",[\"Sales Invoice\",\"etr_invoice_number\",\"!=\",\"\"]" + //Not empty
-                                                    ",[\"Sales Invoice\",\"posting_date\",\">\",\"{0}\"]" +     //After Date
-                                                    ",[\"Sales Invoice\",\"custom_print_count\",\"=\",\"0\"]" + //Print Count = 0
-                                                    "]&limit_page_length={1}", new DateOnly(2025, 01, 01).ToString("yyyy-MM-dd"), 10);
+                //for this ps.doctype, get all docs, with fileds and filters
 
+                //  SAMPLE string.Format("/api/resource/Sales Invoice?fields=[\"name\", \"customer\", \"posting_date\", \"docstatus\", \"status\", \"etr_invoice_number\"," +
+                //                                    "\"etr_invoice_number\", \"total_taxes_and_charges\", \"total\"]" +
+                //                                    "&filters=[" +
+                //                                    "[\"Sales Invoice\",\"docstatus\",\"=\",\"1\"]" +
+                //                                    ",[\"Sales Invoice\",\"etr_invoice_number\",\"!=\",\"\"]" + //Not empty
+                //                                    ",[\"Sales Invoice\",\"posting_date\",\">\",\"{0}\"]" +     //After Date
+                //                                    ",[\"Sales Invoice\",\"custom_print_count\",\"=\",\"0\"]" + //Print Count = 0
+                //                                    "]&limit_page_length={1}", new DateOnly(2025, 01, 01).ToString("yyyy-MM-dd"), 10);
+
+                //Cleanup fields and filters
+                string fields = Regex.Replace(ps.FieldList, @"\r\n?|\n", "");
+                string filters = Regex.Replace(ps.FilterList, @"\r\n?|\n", "");
+
+                string FilterStr = string.Format("/api/resource/{0}}?fields={1}&filters=[{2}]&limit_page_length={3}",ps.DocType.ToString(), fields, filters, 10);
+
+                //Get the docs
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}", Program.FrappeURL, FilterStr));
                 using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
                 using (var client = new HttpClient(handler) { BaseAddress = new Uri(Program.FrappeURL) })
                 {
                     HttpResponseMessage response_qr = await client.SendAsync(request);
                     response_qr.EnsureSuccessStatusCode();
-                    Frappe_DocList.FrappeDocList docList = new Frappe_DocList.FrappeDocList();
-                    docList = await response_qr.Content.ReadFromJsonAsync<Frappe_DocList.FrappeDocList>();
-                    return docList;
+
+                    //  //If preset fields;
+                    //Frappe_DocList.FrappeDocList docList = new Frappe_DocList.FrappeDocList();
+                    //docList = await response_qr.Content.ReadFromJsonAsync<Frappe_DocList.FrappeDocList>();
+                    //return docList;
+
+                    //Dynamic list, because of customer_name, supplier_name, title.
+
+                    dynamic data = JsonSerializer.Deserialize<ExpandoObject>(await response_qr.Content.ReadAsStringAsync());
+                    Console.WriteLine(data.GetType());
+                    Console.WriteLine(data.foo);
+
+                    return new Frappe_DocList.FrappeDocList();
                 }
             }
             catch (Exception exSQL)

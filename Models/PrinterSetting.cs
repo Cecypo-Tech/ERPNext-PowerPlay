@@ -13,6 +13,7 @@ namespace ERPNext_PowerPlay.Models
     {
         public int ID { get; set; }
 
+        public bool Enabled { get; set; }
         public DocType DocType { get; set; }
         public string? WarehouseFilter { get; set; }
 
@@ -21,7 +22,7 @@ namespace ERPNext_PowerPlay.Models
         public string? FilterList { get; set; }
         public string? Printer { get; set; }
         public string? CopyName { get; set; }
-        public int? Copies { get; set; }
+        public int Copies { get; set; }
         public string? PageRange { get; set; }
         public int? FontSize { get; set; }
         public Orientation Orientation { get; set; }

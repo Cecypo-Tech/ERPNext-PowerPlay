@@ -134,7 +134,7 @@ namespace ERPNext_PowerPlay
                         foreach (var ware in waredata.data)
                             db.Add<Warehouse>(new Warehouse() { name = ware.name });
 
-                        Log.Information("Updated Warehouse List (Count:{0})", waredata.data.Count());
+                        Log.Information("Updated Warehouse Count: {0}", waredata.data.Count());
                     }
                     db.SaveChanges();
                 }

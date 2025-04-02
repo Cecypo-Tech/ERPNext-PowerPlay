@@ -1,6 +1,6 @@
 ﻿namespace ERPNext_PowerPlay.Forms
 {
-    partial class ucLogs
+    partial class ucLog
     {
         /// <summary> 
         /// Required designer variable.
@@ -28,30 +28,31 @@
         /// </summary>
         private void InitializeComponent()
         {
-            richTextBox1 = new RichTextBox();
+            gridLog1 = new Serilog.Sinks.WinForms.Core.GridLog();
             SuspendLayout();
             // 
-            // richTextBox1
+            // gridLog1
             // 
-            richTextBox1.Dock = DockStyle.Fill;
-            richTextBox1.Location = new Point(0, 0);
-            richTextBox1.Name = "richTextBox1";
-            richTextBox1.Size = new Size(550, 277);
-            richTextBox1.TabIndex = 0;
-            richTextBox1.Text = "";
+            gridLog1.Dock = DockStyle.Fill;
+            gridLog1.Font = new Font("Arial Narrow", 9F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            gridLog1.Location = new Point(0, 0);
+            gridLog1.Margin = new Padding(3, 4, 3, 4);
+            gridLog1.Name = "gridLog1";
+            gridLog1.Size = new Size(441, 192);
+            gridLog1.TabIndex = 0;
             // 
-            // ucLogs
+            // ucLog
             // 
             AutoScaleDimensions = new SizeF(6F, 13F);
             AutoScaleMode = AutoScaleMode.Font;
-            Controls.Add(richTextBox1);
-            Name = "ucLogs";
-            Size = new Size(550, 277);
+            Controls.Add(gridLog1);
+            Name = "ucLog";
+            Size = new Size(441, 192);
             ResumeLayout(false);
         }
 
         #endregion
 
-        private RichTextBox richTextBox1;
+        private Serilog.Sinks.WinForms.Core.GridLog gridLog1;
     }
 }
