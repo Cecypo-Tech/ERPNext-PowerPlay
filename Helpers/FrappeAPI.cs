@@ -1,5 +1,6 @@
 ﻿using DevExpress.DataAccess.DataFederation;
 using DevExpress.DataAccess.Native.Json;
+using DevExpress.XtraReports.UI.CrossTab;
 using ERPNext_PowerPlay.Models;
 using Serilog;
 using SQLitePCL;
@@ -41,6 +42,7 @@ namespace ERPNext_PowerPlay.Helpers
         {   //With cookies
             try
             {
+                if (api_endpoint.StartsWith("/")) api_endpoint = api_endpoint.Substring(1, api_endpoint.Length - 1);
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}{2}", Program.FrappeURL, api_endpoint, api_filter));
                 using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
                 using (var client = new HttpClient(handler) { BaseAddress = new Uri(Program.FrappeURL) })
@@ -79,8 +81,19 @@ namespace ERPNext_PowerPlay.Helpers
                 //Cleanup fields and filters
                 string fields = Regex.Replace(ps.FieldList, @"\r\n?|\n", "");
                 string filters = Regex.Replace(ps.FilterList, @"\r\n?|\n", "");
-
                 string doctype = ps.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
+                List<string> UserList = new List<string>();
+                string userFilter = "";
+
+                if (!string.IsNullOrEmpty(ps.UserFilter))
+                {
+                    UserList = ps.UserFilter.Split(',').ToList();
+                    foreach (string u in UserList)
+                        userFilter += string.Format("\"{0}\",", u.Trim());
+                    if (userFilter.EndsWith(",")) userFilter = userFilter.Substring(0, userFilter.Length - 1);
+                    userFilter = string.Format(",[\"{0}\",\"owner\",\"IN\",[{1}]]", doctype, userFilter);
+                    filters += userFilter;
+                }
 
                 string FilterStr = string.Format("/api/resource/{0}?fields={1}&filters=[{2}]&limit_page_length={3}", doctype, fields, filters, 10);
 
@@ -111,23 +124,35 @@ namespace ERPNext_PowerPlay.Helpers
                         {
                             try
                             {
+                                //Name
                                 JsonElement jsonElementName = JsonHelper.GetJsonElement(jE, "name");
                                 var docname = JsonHelper.GetJsonElementValue(jsonElementName);
                                 nameCursor = docname;
+
+                                //Potential Total fields
                                 JsonElement jsonElementTot = JsonHelper.GetJsonElement(jE, "grand_total");
+                                if (jsonElementTot.ValueKind == JsonValueKind.Undefined) jsonElementTot = JsonHelper.GetJsonElement(jE, "total");
                                 JsonElement jsonElementPrintCount = JsonHelper.GetJsonElement(jE, "custom_print_count");
                                 JsonElement jsonElementStatus = JsonHelper.GetJsonElement(jE, "status");
 
+                                //Potential Date Fields
                                 JsonElement jsonElementDate = JsonHelper.GetJsonElement(jE, "date");
                                 if (jsonElementDate.ValueKind == JsonValueKind.Undefined) jsonElementDate = JsonHelper.GetJsonElement(jE, "posting_date");
                                 if (jsonElementDate.ValueKind == JsonValueKind.Undefined) jsonElementDate = JsonHelper.GetJsonElement(jE, "transaction_date");
 
+                                //Potenntial Titles Fields (title as last option, used in picking list/stock transfers)
                                 JsonElement jsonElementTitle = JsonHelper.GetJsonElement(jE, "customer");
                                 if (jsonElementTitle.ValueKind == JsonValueKind.Undefined) jsonElementTitle = JsonHelper.GetJsonElement(jE, "supplier");
                                 if (jsonElementTitle.ValueKind == JsonValueKind.Undefined) jsonElementTitle = JsonHelper.GetJsonElement(jE, "title");
 
-                                var title = JsonHelper.GetJsonElementValue(jsonElementTitle);
+                                //owner
+                                JsonElement jsonElementOwner = JsonHelper.GetJsonElement(jE, "owner");
 
+
+                                //Set fields for object
+                                var title = JsonHelper.GetJsonElementValue(jsonElementTitle);
+                                var owner = JsonHelper.GetJsonElementValue(jsonElementOwner);
+                                if (owner == null) owner = "";
                                 var originalSrcString = JsonHelper.GetJsonElementValue(jsonElementDate);
                                 var grandTot = JsonHelper.GetJsonElementValue(jsonElementTot);
                                 var printCount = JsonHelper.GetJsonElementValue(jsonElementPrintCount);
@@ -135,13 +160,14 @@ namespace ERPNext_PowerPlay.Helpers
 
                                 docList.data.Add(new Frappe_DocList.data()
                                 {
-                                    date = Convert.ToDateTime(originalSrcString),
+                                    Date = Convert.ToDateTime(originalSrcString),
                                     DocType = ps.DocType,
-                                    grand_total = Convert.ToDouble(grandTot),
+                                    Grand_Total = Convert.ToDouble(grandTot),
                                     custom_print_count = Convert.ToInt16(printCount),
-                                    name = docname.ToString(),
-                                    status = status.ToString(),
-                                    title = title.ToString()
+                                    Name = docname.ToString(),
+                                    Status = status.ToString(),
+                                    Title = title.ToString(),
+                                    Owner = owner.ToString()
                                 });
                             }
                             catch (Exception exJsonElement)
@@ -149,17 +175,7 @@ namespace ERPNext_PowerPlay.Helpers
                                 Log.Error(exJsonElement, "Error in Element {0}", nameCursor);
                             }
                         }
-
-
-                        //var originalSrcString = JsonHelper.GetJsonElementValue(jsonElement);
-
-
-                        //jsonElement =
-                        //    GetJsonElement(edgesFirstElem, "node.featuredImage.id");
-                        //originalIdString = GetJsonElementValue(jsonElement);
                     }
-
-
                     return docList;
                 }
             }
@@ -174,7 +190,7 @@ namespace ERPNext_PowerPlay.Helpers
         {   //With cookies
             try
             {
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Put, string.Format("{0}/{1}/{2}", Program.FrappeURL, api_endpoint, doc.name));
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Put, string.Format("{0}/{1}/{2}", Program.FrappeURL, api_endpoint, doc.Name));
                 using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
                 using (var client = new HttpClient(handler) { BaseAddress = new Uri(Program.FrappeURL) })
                 {

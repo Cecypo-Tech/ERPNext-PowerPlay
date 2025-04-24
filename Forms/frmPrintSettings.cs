@@ -87,6 +87,17 @@ namespace ERPNext_PowerPlay
             gv_PrintSettings.Columns["WarehouseFilter"].ColumnEdit = repository_list;
             repository_list.EditValueChanged += repository_list_EditValueChanged;
 
+            //Users Filter List
+            db.User.Load();
+            RepositoryItemCheckedComboBoxEdit repository_listnames = new RepositoryItemCheckedComboBoxEdit();
+            List<User> userlist = db.User.Local.ToList();
+            repository_listnames.DataSource = userlist;
+            repository_listnames.ValueMember = "Email";
+            repository_listnames.DisplayMember = "Email";
+
+            gv_PrintSettings.Columns["UserFilter"].ColumnEdit = repository_listnames;
+            repository_listnames.EditValueChanged += repository_userlist_EditValueChanged;
+
             //List installed Printers
             AddPrinters();
 
@@ -131,7 +142,7 @@ namespace ERPNext_PowerPlay
                     { buttonedit.Text = fdlg.FileName; }
                     break;
                 case 1:
-                    DevExpress.XtraReports.Configuration.Settings.Default.UserDesignerOptions.ReportLoadingRestrictionLevel = DevExpress.XtraReports.UI.RestrictionLevel.Enable;
+                    DevExpress.XtraReports.Configuration.Settings.Default.UserDesignerOptions.ReportLoadingRestrictionLevel = RestrictionLevel.Enable;
                     XtraReport report = new XtraReport();
                     if (System.IO.File.Exists(buttonedit.Text))
                     {
@@ -155,12 +166,11 @@ namespace ERPNext_PowerPlay
 
         private void AddPrinters()
         {
-            DevExpress.XtraEditors.Repository.RepositoryItemComboBox cmbPrinters = new DevExpress.XtraEditors.Repository.RepositoryItemComboBox();
+            DevExpress.XtraEditors.Repository.RepositoryItemComboBox cmbPrinters = new RepositoryItemComboBox();
             gv_PrintSettings.Columns["Printer"].ColumnEdit = cmbPrinters;
             cmbPrinters.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
             foreach (string printer in System.Drawing.Printing.PrinterSettings.InstalledPrinters)
             {
-                //template2s.Columns["ForwardPrinter"] cboPrinters.Properties.Items.Add(printer);
                 cmbPrinters.Items.Add(printer);
             }
 
@@ -172,6 +182,20 @@ namespace ERPNext_PowerPlay
             var checkedItems = editor.Properties.GetCheckedItems() as List<Warehouse>;
 
             foreach (Warehouse item in editor.Properties.DataSource as List<Warehouse>)
+            {
+                if (checkedItems != null) item.selected = checkedItems.Contains(item);
+            }
+
+            gv_PrintSettings.RefreshData();
+
+            gv_PrintSettings.UpdateCurrentRow();
+        }
+        private void repository_userlist_EditValueChanged(object sender, EventArgs e)
+        {
+            var editor = sender as CheckedComboBoxEdit;
+            var checkedItems = editor.Properties.GetCheckedItems() as List<User>;
+
+            foreach (User item in editor.Properties.DataSource as List<User>)
             {
                 if (checkedItems != null) item.selected = checkedItems.Contains(item);
             }
@@ -205,33 +229,52 @@ namespace ERPNext_PowerPlay
         {
 
         }
-
+        private async Task<bool> SaveJob(Frappe_DocList.data doc)
+        {
+            try
+            {
+                doc.JobDate = DateTime.Now;
+                await db.JobHistory.AddAsync(doc);
+                await db.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                XtraMessageBox.Show(ex.Message + System.Environment.NewLine + ex.InnerException.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
         private async void simpleButton1_Click(object sender, EventArgs e)
         {
             try
             {
-                //Get Warehouse List & save to DB
-                FrappeAPI fapi = new FrappeAPI();
                 var p = new PrintActions();
                 Stopwatch clock = Stopwatch.StartNew();
 
                 foreach (PrinterSetting ps in db.PrinterSetting.Where(x => x.Enabled).ToList())
                 {
-                    Frappe_DocList.FrappeDocList DocList = await fapi.GetDocs2Print(ps);
+                    Frappe_DocList.FrappeDocList DocList = await new FrappeAPI().GetDocs2Print(ps);
                     if (DocList != null)
                     {
                         Log.Information("Collected {0} Documents in {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
-
                         foreach (Frappe_DocList.data fd in DocList.data)
                         {
-                            bool processed = await p.PrintDoc(fd);//.Frappe_GetDoc(fd.name, ps);
-                            if (processed)
+                            if (!db.JobHistory.Contains(fd))
                             {
-                                string doctype = ps.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
-                                await fapi.UpdateCount(string.Format("/api/resource/{0}", doctype), fd);
+                                bool processed = await p.PrintDoc(fd);//.Frappe_GetDoc(fd.name, ps);
+                                if (processed)
+                                {
+                                    string doctype = ps.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
+                                    await new FrappeAPI().UpdateCount(string.Format("/api/resource/{0}", doctype), fd);
+                                    await SaveJob(fd);
+                                } 
+                            }
+                            else
+                            {
+                                Log.Warning("Document {0}/{1} previously processed!", fd.DocType.ToString(), fd.Name);
                             }
                         }
-                        Log.Information("Princed {0} Documents in: {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
+                        Log.Information("Processed {0} Documents in: {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
                     }
                 }
 
@@ -244,6 +287,7 @@ namespace ERPNext_PowerPlay
 
         private void gv_PrintSettings_InitNewRow(object sender, DevExpress.XtraGrid.Views.Grid.InitNewRowEventArgs e)
         {
+            //Set default values
             this.gv_PrintSettings.SetRowCellValue(e.RowHandle, "Enabled", true);
             this.gv_PrintSettings.SetRowCellValue(e.RowHandle, "Copies", 1);
         }

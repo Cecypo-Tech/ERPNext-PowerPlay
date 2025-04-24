@@ -15,7 +15,7 @@ namespace ERPNext_PowerPlay.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.3");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
 
             modelBuilder.Entity("ERPNext_PowerPlay.Models.Cred", b =>
                 {
@@ -23,19 +23,13 @@ namespace ERPNext_PowerPlay.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("CredListID")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
+                    b.Property<string>("APIKey")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Pass")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Secret")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("URL")
@@ -43,25 +37,55 @@ namespace ERPNext_PowerPlay.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("User")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
 
-                    b.HasIndex("CredListID");
-
                     b.ToTable("Creds");
                 });
 
-            modelBuilder.Entity("ERPNext_PowerPlay.Models.CredList", b =>
+            modelBuilder.Entity("ERPNext_PowerPlay.Models.Frappe_DocList+data", b =>
                 {
-                    b.Property<int>("ID")
+                    b.Property<int>("Job")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.HasKey("ID");
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("TEXT");
 
-                    b.ToTable("Credentials");
+                    b.Property<int>("DocType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("Grand_Total")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime>("JobDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Owner")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("custom_print_count")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Job");
+
+                    b.HasIndex("DocType", "Name", "Date");
+
+                    b.ToTable("JobHistory");
                 });
 
             modelBuilder.Entity("ERPNext_PowerPlay.Models.PrinterSetting", b =>
@@ -123,7 +147,6 @@ namespace ERPNext_PowerPlay.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("REPX_Template")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Scaling")
@@ -132,12 +155,99 @@ namespace ERPNext_PowerPlay.Migrations
                     b.Property<bool>("UOM")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("UserFilter")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("WarehouseFilter")
                         .HasColumnType("TEXT");
 
                     b.HasKey("ID");
 
                     b.ToTable("PrinterSetting");
+                });
+
+            modelBuilder.Entity("ERPNext_PowerPlay.Models.ReportList", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DocType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("EndPoint")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FieldList")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FilterList")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReportName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("ReportList");
+                });
+
+            modelBuilder.Entity("ERPNext_PowerPlay.Models.Settings", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("DateCreated")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DateModified")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("Settings");
+                });
+
+            modelBuilder.Entity("ERPNext_PowerPlay.Models.User", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("selected")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("User");
                 });
 
             modelBuilder.Entity("ERPNext_PowerPlay.Models.Warehouse", b =>
@@ -156,18 +266,6 @@ namespace ERPNext_PowerPlay.Migrations
                     b.HasKey("ID");
 
                     b.ToTable("Warehouse");
-                });
-
-            modelBuilder.Entity("ERPNext_PowerPlay.Models.Cred", b =>
-                {
-                    b.HasOne("ERPNext_PowerPlay.Models.CredList", null)
-                        .WithMany("CredentialList")
-                        .HasForeignKey("CredListID");
-                });
-
-            modelBuilder.Entity("ERPNext_PowerPlay.Models.CredList", b =>
-                {
-                    b.Navigation("CredentialList");
                 });
 #pragma warning restore 612, 618
         }

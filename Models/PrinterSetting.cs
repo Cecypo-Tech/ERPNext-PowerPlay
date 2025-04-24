@@ -16,6 +16,7 @@ namespace ERPNext_PowerPlay.Models
         public bool Enabled { get; set; }
         public DocType DocType { get; set; }
         public string? WarehouseFilter { get; set; }
+        public string? UserFilter { get; set; }
 
         public PrintEngine PrintEngine { get; set; }
         public string? FieldList { get; set; }
@@ -27,7 +28,7 @@ namespace ERPNext_PowerPlay.Models
         public int? FontSize { get; set; }
         public Orientation Orientation { get; set; }
         public Scaling Scaling { get; set; }
-        public string REPX_Template { get; set; }
+        public string? REPX_Template { get; set; }
 
         //Pure Frappe Doc Settings;
         public string? FrappeTemplateName { get; set; }

@@ -9,17 +9,11 @@ using System.Threading.Tasks;
 
 namespace ERPNext_PowerPlay.Models
 {
-    // Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse);
-    public class Warehouse
+    public class User
     {
         public int ID { get; set; }
-        public string name { get; set; }
+        public string FullName{ get; set; }
+        public string Email{ get; set; }
         public bool selected { get; set; }
     }
-
-    public class WarehouseRoot
-    {
-        public List<Warehouse> data { get; set; }
-    }
-
 }

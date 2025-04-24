@@ -34,18 +34,21 @@
             btnLogin = new DevExpress.XtraBars.BarButtonItem();
             btnLogout = new DevExpress.XtraBars.BarButtonItem();
             btnPrintSettings = new DevExpress.XtraBars.BarButtonItem();
-            btnShowLogs = new DevExpress.XtraBars.BarButtonItem();
             barEditItem_DocNamePreview = new DevExpress.XtraBars.BarEditItem();
             repositoryItemTextEdit_PreviewDocName = new DevExpress.XtraEditors.Repository.RepositoryItemTextEdit();
             barButtonItem1 = new DevExpress.XtraBars.BarButtonItem();
             barEditItem_DoctypePreview = new DevExpress.XtraBars.BarEditItem();
             repositoryItemLookUp_PreviewDocType = new DevExpress.XtraEditors.Repository.RepositoryItemLookUpEdit();
+            barButtonItem_JobHistory = new DevExpress.XtraBars.BarButtonItem();
+            skinPaletteRibbonGalleryBarItem1 = new DevExpress.XtraBars.SkinPaletteRibbonGalleryBarItem();
+            btnReportList = new DevExpress.XtraBars.BarButtonItem();
             ribbonPage1 = new DevExpress.XtraBars.Ribbon.RibbonPage();
             ribbonPageGroup1 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             ribbonPageGroup2 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             ribbonPageGroup3 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             ribbonPage2 = new DevExpress.XtraBars.Ribbon.RibbonPage();
             ribbonPageGroup4 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
+            ribbonPageGroup5 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             repositoryItemComboBox_PreviewDocTypes = new DevExpress.XtraEditors.Repository.RepositoryItemComboBox();
             ribbonStatusBar = new DevExpress.XtraBars.Ribbon.RibbonStatusBar();
             documentManager1 = new DevExpress.XtraBars.Docking2010.DocumentManager(components);
@@ -53,7 +56,7 @@
             dockManager1 = new DevExpress.XtraBars.Docking.DockManager(components);
             dockPanel_Log = new DevExpress.XtraBars.Docking.DockPanel();
             dockPanel1_Container = new DevExpress.XtraBars.Docking.ControlContainer();
-            ucLog1 = new ERPNext_PowerPlay.Forms.ucLog();
+            ucLog2 = new ERPNext_PowerPlay.Forms.ucLog();
             ((System.ComponentModel.ISupportInitialize)ribbon).BeginInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemTextEdit_PreviewDocName).BeginInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemLookUp_PreviewDocType).BeginInit();
@@ -68,9 +71,9 @@
             // ribbon
             // 
             ribbon.ExpandCollapseItem.Id = 0;
-            ribbon.Items.AddRange(new DevExpress.XtraBars.BarItem[] { ribbon.ExpandCollapseItem, btnLogin, btnLogout, btnPrintSettings, btnShowLogs, barEditItem_DocNamePreview, barButtonItem1, barEditItem_DoctypePreview });
+            ribbon.Items.AddRange(new DevExpress.XtraBars.BarItem[] { ribbon.ExpandCollapseItem, btnLogin, btnLogout, btnPrintSettings, barEditItem_DocNamePreview, barButtonItem1, barEditItem_DoctypePreview, barButtonItem_JobHistory, skinPaletteRibbonGalleryBarItem1, btnReportList });
             ribbon.Location = new Point(0, 0);
-            ribbon.MaxItemId = 10;
+            ribbon.MaxItemId = 13;
             ribbon.Name = "ribbon";
             ribbon.Pages.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPage[] { ribbonPage1, ribbonPage2 });
             ribbon.RepositoryItems.AddRange(new DevExpress.XtraEditors.Repository.RepositoryItem[] { repositoryItemComboBox_PreviewDocTypes, repositoryItemTextEdit_PreviewDocName, repositoryItemLookUp_PreviewDocType });
@@ -95,19 +98,11 @@
             // 
             // btnPrintSettings
             // 
-            btnPrintSettings.Caption = "Print Settings";
+            btnPrintSettings.Caption = "Print Jobs";
             btnPrintSettings.Id = 3;
             btnPrintSettings.ImageOptions.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("btnPrintSettings.ImageOptions.SvgImage");
             btnPrintSettings.Name = "btnPrintSettings";
             btnPrintSettings.ItemClick += btnPrintSettings_ItemClick;
-            // 
-            // btnShowLogs
-            // 
-            btnShowLogs.Caption = "Show Logs";
-            btnShowLogs.Id = 4;
-            btnShowLogs.ImageOptions.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("btnShowLogs.ImageOptions.SvgImage");
-            btnShowLogs.Name = "btnShowLogs";
-            btnShowLogs.ItemClick += btnShowLogs_ItemClick;
             // 
             // barEditItem_DocNamePreview
             // 
@@ -144,6 +139,28 @@
             repositoryItemLookUp_PreviewDocType.Name = "repositoryItemLookUp_PreviewDocType";
             repositoryItemLookUp_PreviewDocType.NullText = "[None]";
             // 
+            // barButtonItem_JobHistory
+            // 
+            barButtonItem_JobHistory.Caption = "Job History";
+            barButtonItem_JobHistory.Id = 10;
+            barButtonItem_JobHistory.ImageOptions.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("barButtonItem_JobHistory.ImageOptions.SvgImage");
+            barButtonItem_JobHistory.Name = "barButtonItem_JobHistory";
+            barButtonItem_JobHistory.ItemClick += barButtonItem_JobHistory_ItemClick;
+            // 
+            // skinPaletteRibbonGalleryBarItem1
+            // 
+            skinPaletteRibbonGalleryBarItem1.Caption = "skinPaletteRibbonGalleryBarItem1";
+            skinPaletteRibbonGalleryBarItem1.Id = 11;
+            skinPaletteRibbonGalleryBarItem1.Name = "skinPaletteRibbonGalleryBarItem1";
+            // 
+            // btnReportList
+            // 
+            btnReportList.Caption = "Report List";
+            btnReportList.Id = 12;
+            btnReportList.ImageOptions.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("btnReportList.ImageOptions.SvgImage");
+            btnReportList.Name = "btnReportList";
+            btnReportList.ItemClick += btnReportList_ItemClick;
+            // 
             // ribbonPage1
             // 
             ribbonPage1.Groups.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPageGroup[] { ribbonPageGroup1, ribbonPageGroup2, ribbonPageGroup3 });
@@ -160,18 +177,19 @@
             // ribbonPageGroup2
             // 
             ribbonPageGroup2.ItemLinks.Add(btnPrintSettings);
+            ribbonPageGroup2.ItemLinks.Add(btnReportList);
             ribbonPageGroup2.Name = "ribbonPageGroup2";
-            ribbonPageGroup2.Text = "Printing";
+            ribbonPageGroup2.Text = "Configurations";
             // 
             // ribbonPageGroup3
             // 
-            ribbonPageGroup3.ItemLinks.Add(btnShowLogs);
+            ribbonPageGroup3.ItemLinks.Add(barButtonItem_JobHistory);
             ribbonPageGroup3.Name = "ribbonPageGroup3";
-            ribbonPageGroup3.Text = "Other";
+            ribbonPageGroup3.Text = "Data";
             // 
             // ribbonPage2
             // 
-            ribbonPage2.Groups.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPageGroup[] { ribbonPageGroup4 });
+            ribbonPage2.Groups.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPageGroup[] { ribbonPageGroup4, ribbonPageGroup5 });
             ribbonPage2.Name = "ribbonPage2";
             ribbonPage2.Text = "Options";
             // 
@@ -182,6 +200,12 @@
             ribbonPageGroup4.ItemLinks.Add(barButtonItem1);
             ribbonPageGroup4.Name = "ribbonPageGroup4";
             ribbonPageGroup4.Text = "Preview";
+            // 
+            // ribbonPageGroup5
+            // 
+            ribbonPageGroup5.ItemLinks.Add(skinPaletteRibbonGalleryBarItem1);
+            ribbonPageGroup5.Name = "ribbonPageGroup5";
+            ribbonPageGroup5.Text = "Skins";
             // 
             // repositoryItemComboBox_PreviewDocTypes
             // 
@@ -215,28 +239,28 @@
             dockPanel_Log.Controls.Add(dockPanel1_Container);
             dockPanel_Log.Dock = DevExpress.XtraBars.Docking.DockingStyle.Right;
             dockPanel_Log.ID = new Guid("5eeda2e5-436e-40ac-b860-75a941c1d850");
-            dockPanel_Log.Location = new Point(689, 170);
+            dockPanel_Log.Location = new Point(589, 170);
             dockPanel_Log.Name = "dockPanel_Log";
             dockPanel_Log.Options.ShowCloseButton = false;
-            dockPanel_Log.OriginalSize = new Size(200, 200);
-            dockPanel_Log.Size = new Size(200, 246);
+            dockPanel_Log.OriginalSize = new Size(300, 200);
+            dockPanel_Log.Size = new Size(300, 246);
             dockPanel_Log.Text = "Log";
             // 
             // dockPanel1_Container
             // 
-            dockPanel1_Container.Controls.Add(ucLog1);
+            dockPanel1_Container.Controls.Add(ucLog2);
             dockPanel1_Container.Location = new Point(4, 31);
             dockPanel1_Container.Name = "dockPanel1_Container";
-            dockPanel1_Container.Size = new Size(193, 212);
+            dockPanel1_Container.Size = new Size(293, 212);
             dockPanel1_Container.TabIndex = 0;
             // 
-            // ucLog1
+            // ucLog2
             // 
-            ucLog1.Dock = DockStyle.Fill;
-            ucLog1.Location = new Point(0, 0);
-            ucLog1.Name = "ucLog1";
-            ucLog1.Size = new Size(193, 212);
-            ucLog1.TabIndex = 0;
+            ucLog2.Dock = DockStyle.Fill;
+            ucLog2.Location = new Point(0, 0);
+            ucLog2.Name = "ucLog2";
+            ucLog2.Size = new Size(293, 212);
+            ucLog2.TabIndex = 0;
             // 
             // frmMain
             // 
@@ -247,7 +271,7 @@
             Controls.Add(dockPanel_Log);
             Controls.Add(ribbonStatusBar);
             Controls.Add(ribbon);
-            IconOptions.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("frmMain.IconOptions.SvgImage");
+            IconOptions.Image = (Image)resources.GetObject("frmMain.IconOptions.Image");
             IsMdiContainer = true;
             Name = "frmMain";
             Ribbon = ribbon;
@@ -277,7 +301,6 @@
         private DevExpress.XtraBars.BarButtonItem btnLogout;
         private DevExpress.XtraBars.BarButtonItem btnPrintSettings;
         private DevExpress.XtraBars.Ribbon.RibbonPageGroup ribbonPageGroup2;
-        private DevExpress.XtraBars.BarButtonItem btnShowLogs;
         private DevExpress.XtraBars.Ribbon.RibbonPageGroup ribbonPageGroup3;
         private DevExpress.XtraBars.Docking2010.DocumentManager documentManager1;
         private DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView tabbedView1;
@@ -293,5 +316,10 @@
         private DevExpress.XtraBars.Docking.ControlContainer dockPanel1_Container;
         private DevExpress.XtraBars.Docking.DockManager dockManager1;
         private Forms.ucLog ucLog1;
+        private DevExpress.XtraBars.BarButtonItem barButtonItem_JobHistory;
+        private DevExpress.XtraBars.SkinPaletteRibbonGalleryBarItem skinPaletteRibbonGalleryBarItem1;
+        private DevExpress.XtraBars.Ribbon.RibbonPageGroup ribbonPageGroup5;
+        private Forms.ucLog ucLog2;
+        private DevExpress.XtraBars.BarButtonItem btnReportList;
     }
 }

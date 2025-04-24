@@ -11,15 +11,19 @@ namespace ERPNext_PowerPlay.Models
 {
     public class Frappe_DocList
     {
+        [Index(nameof(DocType), nameof(Name), nameof(Date))]
         public class data
         {
-            public int ID { get; set; }
+            [Key]
+            public int Job { get; set; }
+            public DateTime JobDate { get; set; }
             public DocType DocType { get; set; }
-            public string name { get; set; }
-            public string title { get; set; }   //Can be any of customer_name, supplier_name, title
-            public DateTime date { get; set; }    //Can be any of posting_date, transaction_date, date
-            public string status { get; set; }
-            public double grand_total { get; set; }
+            public DateTime Date { get; set; }    //Can be any of posting_date, transaction_date, date
+            public string Owner { get; set; }
+            public string Name { get; set; }
+            public string Title { get; set; }   //Can be any of customer_name, supplier_name, title
+            public string Status { get; set; }
+            public double Grand_Total { get; set; }
 
             public int custom_print_count { get; set; }
         }

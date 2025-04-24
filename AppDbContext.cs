@@ -15,17 +15,21 @@ namespace ERPNext_PowerPlay
 {
     public class AppDbContext : DbContext
     {
-        public DbSet<CredList> Credentials { get; set; }
+        //public DbSet<CredList> Credentials { get; set; }
         public DbSet<Cred> Creds { get; set; }
         public DbSet<PrinterSetting> PrinterSetting { get; set; }
+        public DbSet<ReportList> ReportList { get; set; }
         public DbSet<Warehouse> Warehouse { get; set; }
+        public DbSet<User> User { get; set; }
+        public DbSet<Frappe_DocList.data> JobHistory { get; set; }
+        public DbSet<Settings> Settings { get; set; }
 
         public string DbPath { get; }
         public AppDbContext()
         {
             var folder = Environment.SpecialFolder.LocalApplicationData;
             var path = Environment.GetFolderPath(folder);
-            DbPath = System.IO.Path.Join(path, "ERPNext_PowerPlay.db"); //localappdata + productname, doesn't work here.
+            DbPath = System.IO.Path.Join(path, "\\ERPNext PowerPlay\\ERPNext_PowerPlay.db"); //localappdata + productname, doesn't work here.
         }
 
         // The following configures EF to create a Sqlite database file in the

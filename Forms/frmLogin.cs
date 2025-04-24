@@ -2,6 +2,7 @@
 using DevExpress.Dialogs.Core.Filtering;
 using DevExpress.Mvvm.Native;
 using DevExpress.XtraEditors;
+using DevExpress.XtraPivotGrid.Data;
 using ERPNext_PowerPlay.Helpers;
 using ERPNext_PowerPlay.Models;
 using Microsoft.EntityFrameworkCore;
@@ -39,65 +40,18 @@ namespace ERPNext_PowerPlay
                 Program.FrappeUser = "";
                 Program.FrappeURL = "";
 
-                txtURL.Text = "https://staging-cecypo-3.frappe.cloud";
-                txtUSER.Text = "kushal@cecypo.com";
-                txtPASS.Text = "Kushal@2024";
                 if (txtURL.Text.Length == 0 || txtUSER.Text.Length == 0 || txtPASS.Text.Length == 0) return;
                 txtURL.Text = txtURL.Text.Trim();
                 txtUSER.Text = txtUSER.Text.Trim();
                 btnLogin.Enabled = false;
 
-                // Create a CookieContainer instance
-                var cookieContainer = new CookieContainer();
-
-                // Create an HttpClientHandler and assign the CookieContainer to it
-                var handler = new HttpClientHandler
+                bool LoginAttempt = await AttemptLogin(txtURL.Text, txtUSER.Text, txtPASS.Text);
+                if (LoginAttempt)
                 {
-                    CookieContainer = cookieContainer,
-                    UseCookies = true, // Ensure that the handler uses the CookieContainer
-                };
-
-                // Create an HttpClient instance with the HttpClientHandler
-                using (var client = new HttpClient(handler))
-                {
-                    var uri = new Uri(txtURL.Text + "/api/method/login");
-                    var request = new HttpRequestMessage(HttpMethod.Post, uri);
-                    request.Headers.Add("Accept", "application/json");
-                    dynamic login = new System.Dynamic.ExpandoObject();
-                    login.usr = txtUSER.Text;
-                    login.pwd = txtPASS.Text;
-                    var content = new StringContent(JsonSerializer.Serialize(login), Encoding.UTF8, "application/json");
-                    request.Content = content;
-                    var response = await client.SendAsync(request);
-                    //response.EnsureSuccessStatusCode();
-                    JsonNode data = JsonSerializer.Deserialize<JsonNode>(response.Content.ReadAsStringAsync().Result);
-                    if (data != null)
-                    {
-                        Log.Information(data.ToString());
-                        if (response.IsSuccessStatusCode)
-                        {
-                            var loggedin = data["message"].ToString();
-                            if (loggedin.Contains("Logged In"))
-                            {
-                                Program.FrappeUser = txtUSER.Text;
-                                Program.FrappeURL = txtURL.Text;
-                                Program.Cookies.Add(cookieContainer.GetCookies(uri));
-                                GetWarehouses();    //List warehouses
-                                DialogResult = DialogResult.OK;
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            XtraMessageBox.Show(data["exception"].ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            Log.Warning(response.ToString());
-                        }
-                    }
-                    else
-                    {
-                        Log.Warning("Login Failed. Please try again.");
-                        XtraMessageBox.Show("Login Failed. Please try again.", "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
+                    //Only do this when manually logging in
+                    SaveCheckboxes();
+                    GetWarehouses();    //List warehouses
+                    GetUsers();    //List users
                 }
 
                 btnLogin.Enabled = true;
@@ -108,24 +62,141 @@ namespace ERPNext_PowerPlay
                 XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 btnLogin.Enabled = true;
             }
-
         }
+
+        public async Task<bool> AttemptLogin(string url,  string user, string pass)
+        {
+            // Create a CookieContainer instance
+            var cookieContainer = new CookieContainer();
+
+            // Create an HttpClientHandler and assign the CookieContainer to it
+            var handler = new HttpClientHandler
+            {
+                CookieContainer = cookieContainer,
+                UseCookies = true, // Ensure that the handler uses the CookieContainer
+            };
+
+            // Create an HttpClient instance with the HttpClientHandler
+            using (var client = new HttpClient(handler))
+            {
+                var uri = new Uri(url + "/api/method/login");
+                var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                request.Headers.Add("Accept", "application/json");
+                dynamic login = new System.Dynamic.ExpandoObject();
+                login.usr = user;
+                login.pwd = pass;
+                var content = new StringContent(JsonSerializer.Serialize(login), Encoding.UTF8, "application/json");
+                request.Content = content;
+                var response = await client.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+                JsonNode data = JsonSerializer.Deserialize<JsonNode>(response.Content.ReadAsStringAsync().Result);
+                if (data != null)
+                {
+                    Log.Information(data.ToString());
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var loggedin = data["message"].ToString();
+                        if (loggedin.Contains("Logged In"))
+                        {
+                            Program.FrappeUser = login.usr;
+                            Program.FrappeURL = url;
+                            Program.Cookies.Add(cookieContainer.GetCookies(uri));
+
+                            EnsureDBExists();
+                            DialogResult = DialogResult.OK;
+                            return true;
+                        }
+                        else
+                        {
+                            XtraMessageBox.Show(loggedin, "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                    else
+                    {
+                        XtraMessageBox.Show(data["exception"].ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        Log.Warning(response.ToString());
+                    }
+                }
+                else
+                {
+                    Log.Warning("Login Failed. Please try again.");
+                    XtraMessageBox.Show("Login Failed. Please try again.", "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                return false;
+            }
+        }
+
+        private void EnsureDBExists()
+        {
+            using (AppDbContext db = new AppDbContext())
+            {
+                bool created = db.Database.EnsureCreated();
+                if (created)
+                {
+                    Log.Information("Database Created");
+                }
+                else
+                {
+                    Log.Information("Database Already Exists");
+                }
+            }
+        }
+
+        private async void SaveCheckboxes()
+        {
+            try
+            {
+                using (AppDbContext db = new AppDbContext())
+                {
+                    List<Settings> s =
+                    [
+                        chkAutoStartPrinting.Checked ? new Settings() { Name = "AutoStartPrinting", Enabled = true } : new Settings() { Name = "AutoStartPrinting", Enabled = false },
+                        chkLock.Checked ? new Settings() { Name = "Lock", Enabled = true } : new Settings() { Name = "Lock", Enabled = false },
+                    ];
+
+                    Settings _autologin = new Settings();
+                    if (chkAutoLogin.Checked)
+                    {
+                        _autologin = new Settings() { Name = "AutoLogin", Enabled = true };
+                        //Save credentials
+                        db.Creds.ExecuteDelete();
+                        db.Creds.Add(new Cred() { User = txtUSER.Text, Pass = txtPASS.Text, URL = txtURL.Text });
+                        db.SaveChanges();
+                    }
+                    else
+                    { 
+                        _autologin = new Settings() { Name = "AutoLogin", Enabled = false };
+                    }
+                    s.Add(_autologin);
+
+                    db.Settings.ExecuteDelete();
+                    foreach (var item in s)
+                    {
+                        db.Add<Settings>(item);
+                    }
+
+                    db.SaveChanges();
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message);
+                XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private async void GetWarehouses()
         {
             try
             {
-                AppDbContext db = new AppDbContext();
-                //Get Warehouse List & save to DB
-                FrappeAPI fapi = new FrappeAPI();
-                //Get warehouses once and save to DB. In login?
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}?{2}", Program.FrappeURL, "/api/resource/Warehouse", "&filters=[[\"Warehouse\",\"is_group\",\"=\",\"0\"]]"));
-                using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
-                using (var client = new HttpClient(handler) { BaseAddress = new Uri(Program.FrappeURL) })
+                using (AppDbContext db = new AppDbContext())
                 {
-                    HttpResponseMessage response_qr = await client.SendAsync(request);
-                    response_qr.EnsureSuccessStatusCode();
+                    //Get Warehouse List & save to DB
+                    HttpResponseMessage response = await new FrappeAPI().GetAsReponse("/api/resource/Warehouse", "?filters=[[\"Warehouse\",\"is_group\",\"=\",\"0\"]]");
+                    response.EnsureSuccessStatusCode();
 
-                    string result = await response_qr.Content.ReadAsStringAsync();
+                    string result = await response.Content.ReadAsStringAsync();
                     if (result != null)
                     {
                         db.Warehouse.ExecuteDelete();
@@ -144,6 +215,51 @@ namespace ERPNext_PowerPlay
                 Log.Error(ex.Message);
                 XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private async void GetUsers()
+        {
+            try
+            {
+                using (AppDbContext db = new AppDbContext())
+                {
+                    //Get Warehouse List & save to DB
+                    HttpResponseMessage response = await new FrappeAPI().GetAsReponse("/api/resource/User?fields=[\"name\", \"full_name\", \"location\"]", "&filters[[\"User\", \"Enabled\", \"=\", \"1\"]]");
+                    response.EnsureSuccessStatusCode();
+
+                    string result = await response.Content.ReadAsStringAsync();
+                    if (result != null)
+                    {
+                        db.User.ExecuteDelete();
+                        UserData.Root userdata = JsonSerializer.Deserialize<UserData.Root>(result.ToString());
+
+                        foreach (var usr in userdata.data)
+                            db.Add<User>(new User() { FullName = usr.full_name, Email = usr.name });
+
+                        Log.Information("Updated User Count: {0}", userdata.data.Count());
+                    }
+                    db.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message);
+                XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+
+    public class UserData
+    {
+        public class Datum
+        {
+            public string name { get; set; }
+            public string full_name { get; set; }
+        }
+
+        public class Root
+        {
+            public List<Datum> data { get; set; }
         }
     }
 }

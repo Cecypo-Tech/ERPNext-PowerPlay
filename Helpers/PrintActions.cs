@@ -33,31 +33,6 @@ namespace ERPNext_PowerPlay.Helpers
     public class PrintActions
     {
         string filename = "";
-        //public async Task<bool> Frappe_GetDoc(string DocName, PrinterSetting PS)
-        //{
-        //    try
-        //    {
-
-        //        PrintDoc(DocName);
-        //        //string m = System.Text.Encoding.UTF8.GetString(b);
-        //        //using (MemoryStream ms = new MemoryStream(b))
-        //        //{
-        //        //    //Write a temp PDF file?
-        //        //    // File.WriteAllBytes(filename, ms.ToArray());
-
-        //        //    Log.Information(string.Format("[ERP] {0}: Fetch PDF for DocID {1} successful!", DocName, filepart));
-        //        //    PrintDoc(DocName, filename, ms);
-        //        //}
-
-
-        //        return true;
-        //    }
-        //    catch (Exception exSQL)
-        //    {
-        //        Log.Error(exSQL, exSQL.Message);
-        //        return false;
-        //    }
-        //}
 
         public async Task<byte[]?> getFrappeDoc_AsBytes(string DocName, PrinterSetting PS)
         {
@@ -100,7 +75,7 @@ namespace ERPNext_PowerPlay.Helpers
             try
             {
                 //Used then needed.
-                string filepart = Path.GetRandomFileName() + "_" + doc.name + ".pdf";
+                string filepart = Path.GetRandomFileName() + "_" + doc.Name + ".pdf";
                 filename = Path.Combine(Path.GetTempPath(), filepart);
                 byte[] byteData;
                 bool success = false;
@@ -115,27 +90,28 @@ namespace ERPNext_PowerPlay.Helpers
                         switch (printrow.PrintEngine)
                         {
                             case PrintEngine.FrappePDF:
-                                byteData = await getFrappeDoc_AsBytes(doc.name, printrow);
-                                success = await Task.Run(() => PrintDX(doc.name, byteData, printrow));
+                                byteData = await getFrappeDoc_AsBytes(doc.Name, printrow);
+
+                                success = await Task.Run(() => PrintDX(doc.Name, byteData, printrow));
                                 break;
                             case PrintEngine.SumatraPDF:
-                                byteData = await getFrappeDoc_AsBytes(doc.name, printrow);
+                                byteData = await getFrappeDoc_AsBytes(doc.Name, printrow);
                                 using (MemoryStream ms = new MemoryStream(byteData))
                                     File.WriteAllBytes(filename, ms.ToArray());
 
-                                success = await Task.Run(() => PrintSumatra(doc.name, printrow, filename));
+                                success = await Task.Run(() => PrintSumatra(doc.Name, printrow, filename));
                                 break;
                             case PrintEngine.Ghostscript:
-                                byteData = await getFrappeDoc_AsBytes(doc.name, printrow);
+                                byteData = await getFrappeDoc_AsBytes(doc.Name, printrow);
                                 using (MemoryStream ms = new MemoryStream(byteData))
                                     File.WriteAllBytes(filename, ms.ToArray());
 
-                                success = await Task.Run(() => PrintGhostScript(doc.name, printrow, filename));
+                                success = await Task.Run(() => PrintGhostScript(doc.Name, printrow, filename));
                                 break;
                             case PrintEngine.CustomTemplate:
                                 string doctype = printrow.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
-                                string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", doctype), doc.name); //Full JSON for this document
-                                success = await Task.Run(() => PrintREPX(doc.name, jsonDoc, printrow));
+                                string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", doctype), doc.Name); //Full JSON for this document
+                                success = await Task.Run(() => PrintREPX(doc.Name, jsonDoc, printrow));
                                 break;
                         }
                         try
@@ -146,7 +122,7 @@ namespace ERPNext_PowerPlay.Helpers
                         {
                             Log.Error(exFileDelete, "Failed to delete temp file {0}", filename);
                         }
-                        if (success) Log.Information("[Printed] {0} -> {1}.{2}", doc.name, printrow.PrintEngine.ToString(), printrow.Printer.ToString());
+                        if (success) Log.Information("[Printed] {0} -> {1}.{2}", doc.Name, printrow.PrintEngine.ToString(), printrow.Printer.ToString());
 
                     }
                     else
@@ -159,7 +135,7 @@ namespace ERPNext_PowerPlay.Helpers
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error in PrintDoc with {0}.{1}}", doc.DocType, doc.name);
+                Log.Error(ex, "Error in PrintDoc with {0}.{1}}", doc.DocType, doc.Name);
                 return false;
             }
 
@@ -204,15 +180,9 @@ namespace ERPNext_PowerPlay.Helpers
 
                 var jsonDataSource = new JsonDataSource();
                 jsonDataSource.JsonSource = new CustomJsonSource(jsonDoc);
+                Clipboard.SetText(jsonDoc);
                 jsonDataSource.Fill();
 
-
-                //string UtilPath = GetUtilPath(t2.TillConfig.LayoutFile);
-                List<JsonDataSource> lst = new List<JsonDataSource>();
-                lst.Add(jsonDataSource);
-
-                //report.LoadLayout(UtilPath);
-                //https://docs.devexpress.com/WindowsForms/402477/build-an-application/security-considerations/safe-deserialization
                 DevExpress.Utils.DeserializationSettings.InvokeTrusted(() =>
                 {
                     // Trusted deserialization.  
