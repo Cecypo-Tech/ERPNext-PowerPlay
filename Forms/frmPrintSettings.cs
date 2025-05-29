@@ -222,67 +222,17 @@ namespace ERPNext_PowerPlay
             {
                 XtraMessageBox.Show(ex.Message + System.Environment.NewLine + ex.InnerException.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-
         }
 
         private void gc_PrintSettings_Click(object sender, EventArgs e)
         {
+            //
+        }
 
-        }
-        private async Task<bool> SaveJob(Frappe_DocList.data doc)
-        {
-            try
-            {
-                doc.JobDate = DateTime.Now;
-                await db.JobHistory.AddAsync(doc);
-                await db.SaveChangesAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                XtraMessageBox.Show(ex.Message + System.Environment.NewLine + ex.InnerException.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
-            }
-        }
         private async void simpleButton1_Click(object sender, EventArgs e)
         {
-            try
-            {
-                var p = new PrintActions();
-                Stopwatch clock = Stopwatch.StartNew();
-
-                foreach (PrinterSetting ps in db.PrinterSetting.Where(x => x.Enabled).ToList())
-                {
-                    Frappe_DocList.FrappeDocList DocList = await new FrappeAPI().GetDocs2Print(ps);
-                    if (DocList != null)
-                    {
-                        Log.Information("Collected {0} Documents in {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
-                        foreach (Frappe_DocList.data fd in DocList.data)
-                        {
-                            if (!db.JobHistory.Contains(fd))
-                            {
-                                bool processed = await p.PrintDoc(fd);//.Frappe_GetDoc(fd.name, ps);
-                                if (processed)
-                                {
-                                    string doctype = ps.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
-                                    await new FrappeAPI().UpdateCount(string.Format("/api/resource/{0}", doctype), fd);
-                                    await SaveJob(fd);
-                                } 
-                            }
-                            else
-                            {
-                                Log.Warning("Document {0}/{1} previously processed!", fd.DocType.ToString(), fd.Name);
-                            }
-                        }
-                        Log.Information("Processed {0} Documents in: {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
-                    }
-                }
-
-            }
-            catch (Exception ex)
-            {
-                XtraMessageBox.Show(ex.Message + System.Environment.NewLine + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            PrintJobHelper printJobHelper = new PrintJobHelper(db);
+            printJobHelper.RunPrintJobsAsync();
         }
 
         private void gv_PrintSettings_InitNewRow(object sender, DevExpress.XtraGrid.Views.Grid.InitNewRowEventArgs e)

@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -22,6 +23,7 @@ namespace ERPNext_PowerPlay
 {
     public partial class frmMain : DevExpress.XtraBars.Ribbon.RibbonForm
     {
+        private System.Timers.Timer _timer = new System.Timers.Timer();
         bool _LoggedIn = false;
         public frmMain()
         {
@@ -74,6 +76,15 @@ namespace ERPNext_PowerPlay
                                     case "Lock":
                                         btnPrintSettings.Enabled = !item.Enabled;
                                         btnReportList.Enabled = !item.Enabled;
+                                        break;
+                                    case "Timer":
+                                        int tmr = item.Value;
+                                        if (tmr > 0 && _LoggedIn)
+                                        {
+                                            _timer.Interval = 1000 * tmr;
+                                            InitTimer();
+                                            barToggleSwitchItem1.Checked = true;
+                                        }
                                         break;
                                 }
                             }
@@ -166,6 +177,89 @@ namespace ERPNext_PowerPlay
             frmReportList frm = new frmReportList();
             frm.MdiParent = this;
             frm.Show();
+        }
+
+        private void frmMain_Resize(object sender, EventArgs e)
+        {
+            switch (this.WindowState)
+            {
+                case FormWindowState.Maximized:
+                    this.ShowInTaskbar = true;
+                    break;
+                case FormWindowState.Minimized:
+                    this.ShowInTaskbar = false;
+                    notifyIcon1.Visible = true;
+                    notifyIcon1.BalloonTipText = "ERPNext PowerPlay Minimized";
+                    notifyIcon1.ShowBalloonTip(500);
+                    this.Hide();
+                    break;
+                case FormWindowState.Normal:
+                    this.ShowInTaskbar = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            this.Show();
+            this.WindowState = FormWindowState.Maximized;
+            notifyIcon1.Visible = false;
+            InitTimer();
+        }
+
+        public void InitTimer()
+        {
+            _timer.Elapsed += OnTimerElapsed;
+            //timer1.Interval = 1000; // in miliseconds
+            _timer.Start();
+        }
+        private volatile bool _requestStop = false;
+        AppDbContext dbC = new AppDbContext();
+
+        [STAThread]
+        private async void OnTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            Debug.Print(DateTime.Now.ToString("HH:mm:ss"));
+            Log.Information("Timer at {Time}", DateTime.Now.ToString("HH:mm:ss"));
+
+            Thread t = new Thread((ThreadStart)(() =>
+            {
+                Stop();
+
+                PrintJobHelper printJobHelper = new PrintJobHelper(dbC);
+                printJobHelper.RunPrintJobsAsync();
+
+            }));
+            // Run from a thread that joins the STA Thread
+            t.SetApartmentState(ApartmentState.STA);
+            t.Start();
+            t.Join();
+            if (barToggleSwitchItem1.Checked) Start();
+        }
+        private void Stop()
+        {
+            _requestStop = true;
+            _timer.Stop();
+        }
+
+        private void Start()
+        {
+            _requestStop = false;
+            _timer.Start();
+        }
+
+        private void barToggleSwitchItem1_CheckedChanged(object sender, ItemClickEventArgs e)
+        {
+            if (barToggleSwitchItem1.Checked)
+            {
+                _timer.Start();
+            }
+            else
+            {
+                _timer.Stop();
+            }
         }
     }
 }

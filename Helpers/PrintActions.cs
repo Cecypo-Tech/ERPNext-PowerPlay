@@ -26,7 +26,8 @@ using DevExpress.XtraCharts.Designer.Native;
 using DevExpress.CodeParser;
 using DevExpress.LookAndFeel;
 using System.ComponentModel;
-
+using System.Drawing.Printing;
+using DevExpress.Xpo.DB;
 
 namespace ERPNext_PowerPlay.Helpers
 {
@@ -69,7 +70,7 @@ namespace ERPNext_PowerPlay.Helpers
                 return null;
             }
         }
-
+        [STAThread]
         public async Task<bool> PrintDoc(Frappe_DocList.data doc)
         {
             try
@@ -111,7 +112,16 @@ namespace ERPNext_PowerPlay.Helpers
                             case PrintEngine.CustomTemplate:
                                 string doctype = printrow.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
                                 string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", doctype), doc.Name); //Full JSON for this document
-                                success = await Task.Run(() => PrintREPX(doc.Name, jsonDoc, printrow));
+                                //success = await Task.Run(() => PrintREPX(doc.Name, jsonDoc, printrow));
+                                //success = PrintREPX(doc.Name, jsonDoc, printrow);
+                                Thread t = new Thread((ThreadStart)(() => {
+                                    success = PrintREPX(doc.Name, jsonDoc, printrow);
+                                }));
+
+                                // Run your code from a thread that joins the STA Thread
+                                t.SetApartmentState(ApartmentState.STA);
+                                t.Start();
+                                t.Join();
                                 break;
                         }
                         try
@@ -123,7 +133,7 @@ namespace ERPNext_PowerPlay.Helpers
                             Log.Error(exFileDelete, "Failed to delete temp file {0}", filename);
                         }
                         if (success) Log.Information("[Printed] {0} -> {1}.{2}", doc.Name, printrow.PrintEngine.ToString(), printrow.Printer.ToString());
-
+                        return success;
                     }
                     else
                     {
@@ -167,7 +177,7 @@ namespace ERPNext_PowerPlay.Helpers
                     (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly()).Location),
                 utilName);
 
-
+        [STAThread]
         public bool PrintREPX(string DocName, string jsonDoc, PrinterSetting copyData, bool ForcePreview = false)
         {
             try
@@ -366,7 +376,9 @@ namespace ERPNext_PowerPlay.Helpers
                 {
                     using (PdfDocumentProcessor documentProcessor = new PdfDocumentProcessor())
                     {
+                        //documentProcessor.QueryPageSettings += DocumentProcessor_QueryPageSettings;   //not working for pdf paper size
                         documentProcessor.LoadDocument(memoryStream);
+
 
                         //  //  Embed a "CopyName" on the PDF
                         //if (copyData.CopyName != null)
@@ -466,6 +478,15 @@ namespace ERPNext_PowerPlay.Helpers
             }
         }
 
+        private static void DocumentProcessor_QueryPageSettings(object sender, PdfQueryPageSettingsEventArgs e)
+        {
+            PaperSize paperSize = new PaperSize();
+            //paperSize.Height = Convert.ToInt32(e.PageSize.Width);
+            //paperSize.Width = Convert.ToInt32(e.PageSize.Height);
+            //paperSize.RawKind = 8; // A3
+            paperSize.RawKind = (int)PaperKind.A5;
+            e.PageSettings.PaperSize = paperSize;
+        }
         private static void OnQueryPageSettings(object sender, PdfQueryPageSettingsEventArgs e)
         {
             // Print the second page in landscape size.

@@ -190,7 +190,8 @@ namespace ERPNext_PowerPlay.Helpers
         {   //With cookies
             try
             {
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Put, string.Format("{0}/{1}/{2}", Program.FrappeURL, api_endpoint, doc.Name));
+                if (!api_endpoint.StartsWith("/")) api_endpoint = "/" + api_endpoint;
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Put, string.Format("{0}{1}/{2}", Program.FrappeURL, api_endpoint, doc.Name));
                 using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
                 using (var client = new HttpClient(handler) { BaseAddress = new Uri(Program.FrappeURL) })
                 {

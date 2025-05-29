@@ -102,13 +102,15 @@ namespace ERPNext_PowerPlay
                             Program.FrappeURL = url;
                             Program.Cookies.Add(cookieContainer.GetCookies(uri));
 
+                            Log.Information("Logged into " + url);
+
                             EnsureDBExists();
                             DialogResult = DialogResult.OK;
                             return true;
                         }
                         else
                         {
-                            XtraMessageBox.Show(loggedin, "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            XtraMessageBox.Show(loggedin, "Login Failed - " + url, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         }
                     }
                     else
@@ -133,11 +135,7 @@ namespace ERPNext_PowerPlay
                 bool created = db.Database.EnsureCreated();
                 if (created)
                 {
-                    Log.Information("Database Created");
-                }
-                else
-                {
-                    Log.Information("Database Already Exists");
+                    Log.Information("Database Created!");
                 }
             }
         }
@@ -152,6 +150,7 @@ namespace ERPNext_PowerPlay
                     [
                         chkAutoStartPrinting.Checked ? new Settings() { Name = "AutoStartPrinting", Enabled = true } : new Settings() { Name = "AutoStartPrinting", Enabled = false },
                         chkLock.Checked ? new Settings() { Name = "Lock", Enabled = true } : new Settings() { Name = "Lock", Enabled = false },
+                        spin_TimerValue.Value > 0 ? new Settings() { Name = "Timer", Enabled = true, Value = Convert.ToInt32(spin_TimerValue.Text) } : new Settings() { Name = "Timer", Enabled = false, Value = 0 },
                     ];
 
                     Settings _autologin = new Settings();
@@ -181,7 +180,7 @@ namespace ERPNext_PowerPlay
             }
             catch (Exception ex)
             {
-                Log.Error(ex.Message);
+                Log.Error(ex, "Error while saving settings");
                 XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

@@ -2,8 +2,10 @@
 using ERPNext_PowerPlay.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -37,7 +39,6 @@ namespace ERPNext_PowerPlay
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
             options.UseSqlite($"Data Source={DbPath}");
-
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -42,10 +42,13 @@
             barButtonItem_JobHistory = new DevExpress.XtraBars.BarButtonItem();
             skinPaletteRibbonGalleryBarItem1 = new DevExpress.XtraBars.SkinPaletteRibbonGalleryBarItem();
             btnReportList = new DevExpress.XtraBars.BarButtonItem();
+            skinRibbonGalleryBarItem1 = new DevExpress.XtraBars.SkinRibbonGalleryBarItem();
+            barToggleSwitchItem1 = new DevExpress.XtraBars.BarToggleSwitchItem();
             ribbonPage1 = new DevExpress.XtraBars.Ribbon.RibbonPage();
             ribbonPageGroup1 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             ribbonPageGroup2 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             ribbonPageGroup3 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
+            ribbonPageGroup6 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             ribbonPage2 = new DevExpress.XtraBars.Ribbon.RibbonPage();
             ribbonPageGroup4 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
             ribbonPageGroup5 = new DevExpress.XtraBars.Ribbon.RibbonPageGroup();
@@ -57,6 +60,7 @@
             dockPanel_Log = new DevExpress.XtraBars.Docking.DockPanel();
             dockPanel1_Container = new DevExpress.XtraBars.Docking.ControlContainer();
             ucLog2 = new ERPNext_PowerPlay.Forms.ucLog();
+            notifyIcon1 = new NotifyIcon(components);
             ((System.ComponentModel.ISupportInitialize)ribbon).BeginInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemTextEdit_PreviewDocName).BeginInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemLookUp_PreviewDocType).BeginInit();
@@ -71,9 +75,9 @@
             // ribbon
             // 
             ribbon.ExpandCollapseItem.Id = 0;
-            ribbon.Items.AddRange(new DevExpress.XtraBars.BarItem[] { ribbon.ExpandCollapseItem, btnLogin, btnLogout, btnPrintSettings, barEditItem_DocNamePreview, barButtonItem1, barEditItem_DoctypePreview, barButtonItem_JobHistory, skinPaletteRibbonGalleryBarItem1, btnReportList });
+            ribbon.Items.AddRange(new DevExpress.XtraBars.BarItem[] { ribbon.ExpandCollapseItem, btnLogin, btnLogout, btnPrintSettings, barEditItem_DocNamePreview, barButtonItem1, barEditItem_DoctypePreview, barButtonItem_JobHistory, skinPaletteRibbonGalleryBarItem1, btnReportList, skinRibbonGalleryBarItem1, barToggleSwitchItem1 });
             ribbon.Location = new Point(0, 0);
-            ribbon.MaxItemId = 13;
+            ribbon.MaxItemId = 15;
             ribbon.Name = "ribbon";
             ribbon.Pages.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPage[] { ribbonPage1, ribbonPage2 });
             ribbon.RepositoryItems.AddRange(new DevExpress.XtraEditors.Repository.RepositoryItem[] { repositoryItemComboBox_PreviewDocTypes, repositoryItemTextEdit_PreviewDocName, repositoryItemLookUp_PreviewDocType });
@@ -108,6 +112,7 @@
             // 
             barEditItem_DocNamePreview.Caption = "DocName";
             barEditItem_DocNamePreview.Edit = repositoryItemTextEdit_PreviewDocName;
+            barEditItem_DocNamePreview.EditWidth = 150;
             barEditItem_DocNamePreview.Id = 7;
             barEditItem_DocNamePreview.Name = "barEditItem_DocNamePreview";
             // 
@@ -129,6 +134,7 @@
             // 
             barEditItem_DoctypePreview.Caption = "DocType";
             barEditItem_DoctypePreview.Edit = repositoryItemLookUp_PreviewDocType;
+            barEditItem_DoctypePreview.EditWidth = 150;
             barEditItem_DoctypePreview.Id = 9;
             barEditItem_DoctypePreview.Name = "barEditItem_DoctypePreview";
             // 
@@ -161,9 +167,25 @@
             btnReportList.Name = "btnReportList";
             btnReportList.ItemClick += btnReportList_ItemClick;
             // 
+            // skinRibbonGalleryBarItem1
+            // 
+            skinRibbonGalleryBarItem1.Caption = "skinRibbonGalleryBarItem1";
+            skinRibbonGalleryBarItem1.Id = 13;
+            skinRibbonGalleryBarItem1.Name = "skinRibbonGalleryBarItem1";
+            // 
+            // barToggleSwitchItem1
+            // 
+            barToggleSwitchItem1.BindableChecked = true;
+            barToggleSwitchItem1.Caption = "Timer";
+            barToggleSwitchItem1.Checked = true;
+            barToggleSwitchItem1.Id = 14;
+            barToggleSwitchItem1.Name = "barToggleSwitchItem1";
+            barToggleSwitchItem1.RibbonStyle = DevExpress.XtraBars.Ribbon.RibbonItemStyles.Large;
+            barToggleSwitchItem1.CheckedChanged += barToggleSwitchItem1_CheckedChanged;
+            // 
             // ribbonPage1
             // 
-            ribbonPage1.Groups.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPageGroup[] { ribbonPageGroup1, ribbonPageGroup2, ribbonPageGroup3 });
+            ribbonPage1.Groups.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPageGroup[] { ribbonPageGroup1, ribbonPageGroup2, ribbonPageGroup3, ribbonPageGroup6 });
             ribbonPage1.Name = "ribbonPage1";
             ribbonPage1.Text = "Main";
             // 
@@ -187,6 +209,12 @@
             ribbonPageGroup3.Name = "ribbonPageGroup3";
             ribbonPageGroup3.Text = "Data";
             // 
+            // ribbonPageGroup6
+            // 
+            ribbonPageGroup6.ItemLinks.Add(barToggleSwitchItem1);
+            ribbonPageGroup6.Name = "ribbonPageGroup6";
+            ribbonPageGroup6.Text = "Actions";
+            // 
             // ribbonPage2
             // 
             ribbonPage2.Groups.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPageGroup[] { ribbonPageGroup4, ribbonPageGroup5 });
@@ -199,10 +227,11 @@
             ribbonPageGroup4.ItemLinks.Add(barEditItem_DocNamePreview);
             ribbonPageGroup4.ItemLinks.Add(barButtonItem1);
             ribbonPageGroup4.Name = "ribbonPageGroup4";
-            ribbonPageGroup4.Text = "Preview";
+            ribbonPageGroup4.Text = "Preview Test";
             // 
             // ribbonPageGroup5
             // 
+            ribbonPageGroup5.ItemLinks.Add(skinRibbonGalleryBarItem1);
             ribbonPageGroup5.ItemLinks.Add(skinPaletteRibbonGalleryBarItem1);
             ribbonPageGroup5.Name = "ribbonPageGroup5";
             ribbonPageGroup5.Text = "Skins";
@@ -262,6 +291,13 @@
             ucLog2.Size = new Size(293, 212);
             ucLog2.TabIndex = 0;
             // 
+            // notifyIcon1
+            // 
+            notifyIcon1.Icon = (Icon)resources.GetObject("notifyIcon1.Icon");
+            notifyIcon1.Text = "notifyIcon1";
+            notifyIcon1.Visible = true;
+            notifyIcon1.MouseDoubleClick += notifyIcon1_MouseDoubleClick;
+            // 
             // frmMain
             // 
             Appearance.Options.UseFont = true;
@@ -278,6 +314,7 @@
             StatusBar = ribbonStatusBar;
             Text = "ERPNext PowerPlay";
             WindowState = FormWindowState.Maximized;
+            Resize += frmMain_Resize;
             ((System.ComponentModel.ISupportInitialize)ribbon).EndInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemTextEdit_PreviewDocName).EndInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemLookUp_PreviewDocType).EndInit();
@@ -321,5 +358,9 @@
         private DevExpress.XtraBars.Ribbon.RibbonPageGroup ribbonPageGroup5;
         private Forms.ucLog ucLog2;
         private DevExpress.XtraBars.BarButtonItem btnReportList;
+        private NotifyIcon notifyIcon1;
+        private DevExpress.XtraBars.SkinRibbonGalleryBarItem skinRibbonGalleryBarItem1;
+        private DevExpress.XtraBars.BarToggleSwitchItem barToggleSwitchItem1;
+        private DevExpress.XtraBars.Ribbon.RibbonPageGroup ribbonPageGroup6;
     }
 }

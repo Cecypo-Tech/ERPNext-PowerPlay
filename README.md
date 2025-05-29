@@ -16,8 +16,9 @@ Example use case: Company has 5 branches, with a central e-invoicing device, tha
     - Easily create drag and drop professional print templates.
     - Create thermal receipts (for thermal printers, Kitchen Order Tickets (KOT), etc)
 - **Reprinting**
-  - Add a int field `custom_print_count` that will be incremented from this tool
+  - Add a int field `custom_print_count` that will be incremented from this tool. Enable `Allow On Submit` and `No Copy`.
   - Tool saves print history, ensuring that the document does not get printed multiple times
+- Create multiple jobs for the same doctype if you need multiple layouts (you could use one for the receipt and a modified one acting as a picking list)
 - Use any print format (not limited to default)
 - Windows only
 
@@ -25,6 +26,7 @@ Example use case: Company has 5 branches, with a central e-invoicing device, tha
  - The inbuilt Report Designer makes it easy to drag and drop and implement custom sorting or visibility rules!
  - Easily create a thermal receipt template (provided in the Layout-Samples folder) for Roll-Paper/thermal paper printer.
  - Easily implement Kitchen Order Tickets (KOT), picking slips, etc as you need.
+ - HINT: Ensure your JSON DATA SOURCE is in the format `[ "data": { "name": "INV-007"...` as shown in the image below.
 ![Report Designer](https://i.imgur.com/dcXvEbn.png)
 ## Usage/Examples
 
@@ -45,6 +47,7 @@ Example use case: Company has 5 branches, with a central e-invoicing device, tha
   - Must include a title, any of:`customer, supplier, title`
   - Must include a total, any of: `grand_total, total`
   - Must include a print count: `custom_print_count`
+  - Add `Company` if using multiple companies in a site
 - Filter list
   - Sample: `["Sales Invoice","docstatus","=","1"], ["Sales Invoice","etr_invoice_number","!=",""], ["Sales Invoice","posting_date",">","2024-01-01"], ["Sales Invoice","total","!=","0"]`
     - Explaination of the filters;
@@ -53,3 +56,11 @@ Example use case: Company has 5 branches, with a central e-invoicing device, tha
      - "posting_date",">","2024-01-01" - document only after this date
      - "total","!=","0" - where totals are not 0
   - Sample with User Filter: `[["Sales Invoice","docstatus","=","1"],["Sales Invoice","etr_invoice_number","!=",""],["Sales Invoice","posting_date",">","2024-09-25"],["Sales Invoice","total","!=","0"],["Sales Invoice", "owner", "IN", ["me@here.com", "you@here.com`"]]]` 
+
+  **SETTINGS FOR REPORTS**
+- The GRID system we use is just simply magic. Grouping, filtering, ordering, sorting and more. AND ability to SAVE your preferred view (of groups, ordering, etc)!
+- Payment Entry Report Sample:
+![Reports](https://i.imgur.com/ufHsaq9.png) (Config on the left, Report result on the right)
+  - Field List: `["name", "owner", "posting_date", "status", "payment_type", "mode_of_payment", "reference_no", "paid_amount"]`
+  - Filter List: `["Payment Entry", "posting_date", ">=", "2024/04/25"],["Payment Entry", "posting_date", "<=", "2025/04/25"]`
+  - Export: Experimental.

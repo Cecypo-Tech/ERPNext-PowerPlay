@@ -11,6 +11,7 @@ using DevExpress.XtraGrid.Columns;
 using DevExpress.XtraGrid.Menu;
 using DevExpress.XtraGrid.Views.Grid;
 using DevExpress.XtraPivotGrid;
+using DevExpress.XtraPrinting;
 using DevExpress.XtraTab;
 using DevExpress.XtraVerticalGrid;
 using ERPNext_PowerPlay.Helpers;
@@ -32,7 +33,7 @@ namespace ERPNext_PowerPlay.Forms
         {
             InitializeComponent();
             xtraTabControl1.TabPages.Clear();
-            dtFrom.DateTime = DateTime.Now.AddDays(-1);
+            dtFrom.DateTime = DateTime.Now;
             dtTo.DateTime = DateTime.Now;
             LoadData();
 
@@ -69,8 +70,9 @@ namespace ERPNext_PowerPlay.Forms
                         string filter = rpt.FilterList
                             .Replace("{from_date}", dtFrom.DateTime.Date.ToString("yyyy/MM/dd"))
                             .Replace("{to_date}", dtTo.DateTime.Date.ToString("yyyy/MM/dd"));
-                        query = string.Format("?fields={0}&filters={1}", rpt.FieldList, filter);
+                        query = string.Format("?fields={0}&filters=[{1}]", rpt.FieldList, filter);
                     }
+                    query += "&limit_page_length=9999";
                     string json = await fapi.GetAsString(rpt.EndPoint, query);
 
                     JsonElement doc = JsonSerializer.Deserialize<JsonElement>(json);
@@ -90,6 +92,7 @@ namespace ERPNext_PowerPlay.Forms
                             currentGrid = gc;
                             currentView = (GridView)gc.MainView;
                             SetupGrid();
+                            currentView.ViewCaption = string.Format("{0} - {1} to {2}", rpt.ReportName, dtFrom.DateTime.Date.ToString("yy/MM/dd"), dtTo.DateTime.Date.ToString("yy/MM/dd"));
                         }
                     }
                     else                        //Pivot
@@ -109,6 +112,7 @@ namespace ERPNext_PowerPlay.Forms
 
                                 pv.Fields.Add(field);
                             }
+                            pv.Tag = string.Format("{0} - {1} to {2}", rpt.ReportName, dtFrom.DateTime.Date.ToString("yy/MM/dd"), dtTo.DateTime.Date.ToString("yy/MM/dd"));
                         }
 
                     }
@@ -133,7 +137,7 @@ namespace ERPNext_PowerPlay.Forms
             tabPage.Image = ImageResourceCache.Default.GetImage("office2013/grid/grid_16x16.png");
 
             GridControl gridControl = new GridControl();
-            
+            gridControl.DataSource = dataSource;
             gridControl.Dock = DockStyle.Fill;
             gridControl.Tag = RptName;
             gridControl.MainView = gridControl.CreateView("Grid");
@@ -162,6 +166,7 @@ namespace ERPNext_PowerPlay.Forms
             tabPage.Image = ImageResourceCache.Default.GetImage("office2013/grid/grid_16x16.png");
 
             var gridControl = new PivotGridControl();
+            gridControl.DataSource = dataSource;
             gridControl.Dock = DockStyle.Fill;
             gridControl.Tag = RptName;
 
@@ -192,7 +197,7 @@ namespace ERPNext_PowerPlay.Forms
             gv.PopulateColumns();
             try
             {
-                
+
                 gv.BeginUpdate();
                 gv.PopupMenuShowing += gv_Data_PopupMenuShowing;
                 XtraGrid_LoadLayout();
@@ -221,6 +226,7 @@ namespace ERPNext_PowerPlay.Forms
                 gv.OptionsLayout.StoreVisualOptions = true;
                 gv.OptionsLayout.StoreDataSettings = true;
                 gv.OptionsView.GroupFooterShowMode = GroupFooterShowMode.VisibleAlways;
+
 
                 if (gv.Columns.Count > 0)
                 {
@@ -262,7 +268,7 @@ namespace ERPNext_PowerPlay.Forms
                     }
                 }
                 gv.EndUpdate();
-                
+
             }
             catch (Exception ex)
             {
@@ -331,7 +337,6 @@ namespace ERPNext_PowerPlay.Forms
                 return jsonDataSource;
             }
             return null;
-
         }
 
         private void LoadJobHistory(string RptName)
@@ -366,6 +371,7 @@ namespace ERPNext_PowerPlay.Forms
                     //Fit
                     gv.BestFitMaxRowCount = 100;
                     gv.BestFitColumns();
+                    gv.OptionsBehavior.Editable = false;
                 }
             }
             catch (Exception ex)
@@ -381,7 +387,7 @@ namespace ERPNext_PowerPlay.Forms
             GridControl grid = (sender as GridView).GridControl;
             if (gv == null) return;
             if (grid == null) return;
-            
+
             currentGrid = grid;
             currentView = gv;
 
@@ -403,7 +409,7 @@ namespace ERPNext_PowerPlay.Forms
             {
                 DXPopupMenu menu2 = new DXPopupMenu();
                 DXSubMenuItem sItem = new DXSubMenuItem("Export Options");
-
+                sItem.Items.Add(new DXMenuItem("Print Preview", new EventHandler(ExportGrid), image: imageCollection1.Images[6]));
                 sItem.Items.Add(new DXMenuItem("Export to xlsx", new EventHandler(ExportGrid), image: imageCollection1.Images[3]));
                 sItem.Items.Add(new DXMenuItem("Export to csv", new EventHandler(ExportGrid), image: imageCollection1.Images[4]));
                 sItem.Items.Add(new DXMenuItem("Export to pdf", new EventHandler(ExportGrid), image: imageCollection1.Images[5]));
@@ -412,7 +418,7 @@ namespace ERPNext_PowerPlay.Forms
                 saver.Tag = gv;
                 menu2.Items.Add(saver);
                 menu2.ShowPopup(grid, e.HitInfo.HitPoint);
-                
+
             }
         }
         GridControl currentGrid;
@@ -429,6 +435,44 @@ namespace ERPNext_PowerPlay.Forms
                 string path = GetTemp("xlsx");
                 switch (exportItem.Caption)
                 {
+                    case "Print Preview":
+                        path = "";
+                        PrintingSystem printingSystem1 = new PrintingSystem();
+                        PrintableComponentLink link = new PrintableComponentLink();
+                        printingSystem1.Links.AddRange(new object[] { link });
+                        link.Component = currentGrid;
+
+                        string hleftColumn = Application.ProductName;
+                        string hmiddleColumn = "";
+                        string hrightColumn = currentView.ViewCaption;
+
+                        string fleftColumn = "Pages: [Page # of Pages #]";
+                        string fmiddleColumn = "User: [User Name]";
+                        string frightColumn = "Printed Date: [Date Printed]";
+
+                        // Create a PageHeaderFooter
+                        PageHeaderFooter phf = link.PageHeaderFooter as PageHeaderFooter;
+                        
+                        // Clear the PageHeaderFooter's contents.
+                        phf.Header.Content.Clear();
+                        
+                        // Add custom information to the link's header.
+                        phf.Header.Content.AddRange(new string[] { hleftColumn, hmiddleColumn, hrightColumn });
+                        phf.Header.LineAlignment = BrickAlignment.Far;
+                        phf.Footer.Content.AddRange(new string[] { fleftColumn, fmiddleColumn, frightColumn });
+                        phf.Footer.LineAlignment = BrickAlignment.Near;
+                        //End Header/FootPageHeaderFooter
+
+                        //Set thinner margins
+                        link.Margins.Top = 60; // Set top margin in points
+                        link.Margins.Bottom = 60;
+                        link.Margins.Left =40;
+                        link.Margins.Right = 40;
+
+                        link.CreateDocument();
+                        link.ShowRibbonPreview(LookAndFeel.ActiveLookAndFeel);
+
+                        break;
                     case "Export to xlsx":
                         path = GetTemp("xlsx");
                         currentGrid.ExportToXlsx(path);
@@ -445,15 +489,16 @@ namespace ERPNext_PowerPlay.Forms
                         break;
                 }
 
-                if (File.Exists(path))
-                {
-                    //Open the file
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
-                }
-                else
-                {
-                    XtraMessageBox.Show("File not found", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                if (path.Length > 0)
+                    if (File.Exists(path))
+                    {
+                        //Open the file
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+                    }
+                    else
+                    {
+                        XtraMessageBox.Show("File not found", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
             }
             catch (Exception ex)
             {
@@ -480,7 +525,7 @@ namespace ERPNext_PowerPlay.Forms
         DXMenuCheckItem CreateCheckItem(string caption, GridColumn column, FixedStyle style, Image image)
         {
             DXMenuCheckItem item = new DXMenuCheckItem(caption, column.Fixed == style,
-              image,new EventHandler(OnFixedClick));
+              image, new EventHandler(OnFixedClick));
             item.Tag = new MenuInfo(column, style);
             return item;
         }

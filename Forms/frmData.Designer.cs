@@ -31,6 +31,14 @@
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmData));
             layoutControl1 = new DevExpress.XtraLayout.LayoutControl();
+            dropDownBtn = new DevExpress.XtraEditors.DropDownButton();
+            barManager1 = new DevExpress.XtraBars.BarManager(components);
+            bar3 = new DevExpress.XtraBars.Bar();
+            barDockControlTop = new DevExpress.XtraBars.BarDockControl();
+            barDockControlBottom = new DevExpress.XtraBars.BarDockControl();
+            barDockControlLeft = new DevExpress.XtraBars.BarDockControl();
+            barDockControlRight = new DevExpress.XtraBars.BarDockControl();
+            popupMenu1 = new DevExpress.XtraBars.PopupMenu(components);
             xtraTabControl1 = new DevExpress.XtraTab.XtraTabControl();
             xtraTabPage1 = new DevExpress.XtraTab.XtraTabPage();
             toggleSwitch1 = new DevExpress.XtraEditors.ToggleSwitch();
@@ -46,16 +54,12 @@
             layoutControlItem7 = new DevExpress.XtraLayout.LayoutControlItem();
             layoutControlItem8 = new DevExpress.XtraLayout.LayoutControlItem();
             emptySpaceItem1 = new DevExpress.XtraLayout.EmptySpaceItem();
+            layoutControlItem2 = new DevExpress.XtraLayout.LayoutControlItem();
             imageCollection1 = new DevExpress.Utils.ImageCollection(components);
-            popupMenu1 = new DevExpress.XtraBars.PopupMenu(components);
-            barManager1 = new DevExpress.XtraBars.BarManager(components);
-            barDockControlTop = new DevExpress.XtraBars.BarDockControl();
-            barDockControlBottom = new DevExpress.XtraBars.BarDockControl();
-            barDockControlLeft = new DevExpress.XtraBars.BarDockControl();
-            barDockControlRight = new DevExpress.XtraBars.BarDockControl();
-            bar3 = new DevExpress.XtraBars.Bar();
             ((System.ComponentModel.ISupportInitialize)layoutControl1).BeginInit();
             layoutControl1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)barManager1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)popupMenu1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)xtraTabControl1).BeginInit();
             xtraTabControl1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)toggleSwitch1.Properties).BeginInit();
@@ -72,13 +76,13 @@
             ((System.ComponentModel.ISupportInitialize)layoutControlItem7).BeginInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem8).BeginInit();
             ((System.ComponentModel.ISupportInitialize)emptySpaceItem1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlItem2).BeginInit();
             ((System.ComponentModel.ISupportInitialize)imageCollection1).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)popupMenu1).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)barManager1).BeginInit();
             SuspendLayout();
             // 
             // layoutControl1
             // 
+            layoutControl1.Controls.Add(dropDownBtn);
             layoutControl1.Controls.Add(xtraTabControl1);
             layoutControl1.Controls.Add(toggleSwitch1);
             layoutControl1.Controls.Add(comboBoxEdit1);
@@ -93,6 +97,80 @@
             layoutControl1.Size = new Size(1018, 376);
             layoutControl1.TabIndex = 1;
             layoutControl1.Text = "layoutControl1";
+            // 
+            // dropDownBtn
+            // 
+            dropDownBtn.AutoWidthInLayoutControl = true;
+            dropDownBtn.DropDownArrowStyle = DevExpress.XtraEditors.DropDownArrowStyle.Show;
+            dropDownBtn.ImageOptions.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("dropDownBtn.ImageOptions.SvgImage");
+            dropDownBtn.ImageOptions.SvgImageSize = new Size(16, 16);
+            dropDownBtn.Location = new Point(963, 14);
+            dropDownBtn.MenuManager = barManager1;
+            dropDownBtn.Name = "dropDownBtn";
+            barManager1.SetPopupContextMenu(dropDownBtn, popupMenu1);
+            dropDownBtn.ShowFocusRectangle = DevExpress.Utils.DefaultBoolean.False;
+            dropDownBtn.Size = new Size(41, 22);
+            dropDownBtn.StyleController = layoutControl1;
+            dropDownBtn.TabIndex = 7;
+            // 
+            // barManager1
+            // 
+            barManager1.Bars.AddRange(new DevExpress.XtraBars.Bar[] { bar3 });
+            barManager1.DockControls.Add(barDockControlTop);
+            barManager1.DockControls.Add(barDockControlBottom);
+            barManager1.DockControls.Add(barDockControlLeft);
+            barManager1.DockControls.Add(barDockControlRight);
+            barManager1.Form = this;
+            barManager1.StatusBar = bar3;
+            // 
+            // bar3
+            // 
+            bar3.BarName = "Status bar";
+            bar3.CanDockStyle = DevExpress.XtraBars.BarCanDockStyle.Bottom;
+            bar3.DockCol = 0;
+            bar3.DockRow = 0;
+            bar3.DockStyle = DevExpress.XtraBars.BarDockStyle.Bottom;
+            bar3.OptionsBar.AllowQuickCustomization = false;
+            bar3.OptionsBar.DrawDragBorder = false;
+            bar3.OptionsBar.UseWholeRow = true;
+            bar3.Text = "Status bar";
+            // 
+            // barDockControlTop
+            // 
+            barDockControlTop.CausesValidation = false;
+            barDockControlTop.Dock = DockStyle.Top;
+            barDockControlTop.Location = new Point(0, 0);
+            barDockControlTop.Manager = barManager1;
+            barDockControlTop.Size = new Size(1018, 0);
+            // 
+            // barDockControlBottom
+            // 
+            barDockControlBottom.CausesValidation = false;
+            barDockControlBottom.Dock = DockStyle.Bottom;
+            barDockControlBottom.Location = new Point(0, 376);
+            barDockControlBottom.Manager = barManager1;
+            barDockControlBottom.Size = new Size(1018, 25);
+            // 
+            // barDockControlLeft
+            // 
+            barDockControlLeft.CausesValidation = false;
+            barDockControlLeft.Dock = DockStyle.Left;
+            barDockControlLeft.Location = new Point(0, 0);
+            barDockControlLeft.Manager = barManager1;
+            barDockControlLeft.Size = new Size(0, 376);
+            // 
+            // barDockControlRight
+            // 
+            barDockControlRight.CausesValidation = false;
+            barDockControlRight.Dock = DockStyle.Right;
+            barDockControlRight.Location = new Point(1018, 0);
+            barDockControlRight.Manager = barManager1;
+            barDockControlRight.Size = new Size(0, 376);
+            // 
+            // popupMenu1
+            // 
+            popupMenu1.Manager = barManager1;
+            popupMenu1.Name = "popupMenu1";
             // 
             // xtraTabControl1
             // 
@@ -139,9 +217,9 @@
             btnLoad.ImageOptions.ImageToTextAlignment = DevExpress.XtraEditors.ImageAlignToText.RightCenter;
             btnLoad.ImageOptions.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("btnLoad.ImageOptions.SvgImage");
             btnLoad.ImageOptions.SvgImageSize = new Size(16, 16);
-            btnLoad.Location = new Point(774, 12);
+            btnLoad.Location = new Point(776, 14);
             btnLoad.Name = "btnLoad";
-            btnLoad.Size = new Size(153, 26);
+            btnLoad.Size = new Size(149, 22);
             btnLoad.StyleController = layoutControl1;
             btnLoad.TabIndex = 5;
             btnLoad.Text = "Load";
@@ -173,7 +251,7 @@
             // 
             Root.EnableIndentsWithoutBorders = DevExpress.Utils.DefaultBoolean.True;
             Root.GroupBordersVisible = false;
-            Root.Items.AddRange(new DevExpress.XtraLayout.BaseLayoutItem[] { layoutControlItem1, layoutControlItem4, layoutControlItem5, layoutControlItem3, layoutControlItem7, layoutControlItem8, emptySpaceItem1 });
+            Root.Items.AddRange(new DevExpress.XtraLayout.BaseLayoutItem[] { layoutControlItem1, layoutControlItem4, layoutControlItem5, layoutControlItem3, layoutControlItem7, layoutControlItem8, emptySpaceItem1, layoutControlItem2 });
             Root.Name = "Root";
             Root.Size = new Size(1018, 376);
             Root.TextVisible = false;
@@ -200,6 +278,7 @@
             layoutControlItem4.Name = "layoutControlItem4";
             layoutControlItem4.Size = new Size(157, 34);
             layoutControlItem4.SizeConstraintsType = DevExpress.XtraLayout.SizeConstraintsType.Custom;
+            layoutControlItem4.Spacing = new DevExpress.XtraLayout.Utils.Padding(2, 2, 2, 2);
             layoutControlItem4.TextVisible = false;
             // 
             // layoutControlItem5
@@ -248,7 +327,16 @@
             // 
             emptySpaceItem1.Location = new Point(919, 0);
             emptySpaceItem1.Name = "emptySpaceItem1";
-            emptySpaceItem1.Size = new Size(79, 34);
+            emptySpaceItem1.Size = new Size(30, 34);
+            // 
+            // layoutControlItem2
+            // 
+            layoutControlItem2.Control = dropDownBtn;
+            layoutControlItem2.Location = new Point(949, 0);
+            layoutControlItem2.Name = "layoutControlItem2";
+            layoutControlItem2.Size = new Size(49, 34);
+            layoutControlItem2.Spacing = new DevExpress.XtraLayout.Utils.Padding(2, 2, 2, 2);
+            layoutControlItem2.TextVisible = false;
             // 
             // imageCollection1
             // 
@@ -261,64 +349,8 @@
             imageCollection1.Images.SetKeyName(4, "exporttocsv_16x16.png");
             imageCollection1.InsertGalleryImage("exporttopdf_16x16.png", "images/export/exporttopdf_16x16.png", DevExpress.Images.ImageResourceCache.Default.GetImage("images/export/exporttopdf_16x16.png"), 5);
             imageCollection1.Images.SetKeyName(5, "exporttopdf_16x16.png");
-            // 
-            // popupMenu1
-            // 
-            popupMenu1.Manager = barManager1;
-            popupMenu1.Name = "popupMenu1";
-            // 
-            // barManager1
-            // 
-            barManager1.Bars.AddRange(new DevExpress.XtraBars.Bar[] { bar3 });
-            barManager1.DockControls.Add(barDockControlTop);
-            barManager1.DockControls.Add(barDockControlBottom);
-            barManager1.DockControls.Add(barDockControlLeft);
-            barManager1.DockControls.Add(barDockControlRight);
-            barManager1.Form = this;
-            barManager1.StatusBar = bar3;
-            // 
-            // barDockControlTop
-            // 
-            barDockControlTop.CausesValidation = false;
-            barDockControlTop.Dock = DockStyle.Top;
-            barDockControlTop.Location = new Point(0, 0);
-            barDockControlTop.Manager = barManager1;
-            barDockControlTop.Size = new Size(1018, 0);
-            // 
-            // barDockControlBottom
-            // 
-            barDockControlBottom.CausesValidation = false;
-            barDockControlBottom.Dock = DockStyle.Bottom;
-            barDockControlBottom.Location = new Point(0, 376);
-            barDockControlBottom.Manager = barManager1;
-            barDockControlBottom.Size = new Size(1018, 25);
-            // 
-            // barDockControlLeft
-            // 
-            barDockControlLeft.CausesValidation = false;
-            barDockControlLeft.Dock = DockStyle.Left;
-            barDockControlLeft.Location = new Point(0, 0);
-            barDockControlLeft.Manager = barManager1;
-            barDockControlLeft.Size = new Size(0, 376);
-            // 
-            // barDockControlRight
-            // 
-            barDockControlRight.CausesValidation = false;
-            barDockControlRight.Dock = DockStyle.Right;
-            barDockControlRight.Location = new Point(1018, 0);
-            barDockControlRight.Manager = barManager1;
-            barDockControlRight.Size = new Size(0, 376);
-            // 
-            // bar3
-            // 
-            bar3.BarName = "Status bar";
-            bar3.CanDockStyle = DevExpress.XtraBars.BarCanDockStyle.Bottom;
-            bar3.DockCol = 0;
-            bar3.DockStyle = DevExpress.XtraBars.BarDockStyle.Bottom;
-            bar3.OptionsBar.AllowQuickCustomization = false;
-            bar3.OptionsBar.DrawDragBorder = false;
-            bar3.OptionsBar.UseWholeRow = true;
-            bar3.Text = "Status bar";
+            imageCollection1.InsertGalleryImage("print_16x16.png", "office2013/print/print_16x16.png", DevExpress.Images.ImageResourceCache.Default.GetImage("office2013/print/print_16x16.png"), 6);
+            imageCollection1.Images.SetKeyName(6, "print_16x16.png");
             // 
             // frmData
             // 
@@ -335,6 +367,8 @@
             Text = "Data";
             ((System.ComponentModel.ISupportInitialize)layoutControl1).EndInit();
             layoutControl1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)barManager1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)popupMenu1).EndInit();
             ((System.ComponentModel.ISupportInitialize)xtraTabControl1).EndInit();
             xtraTabControl1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)toggleSwitch1.Properties).EndInit();
@@ -351,9 +385,8 @@
             ((System.ComponentModel.ISupportInitialize)layoutControlItem7).EndInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem8).EndInit();
             ((System.ComponentModel.ISupportInitialize)emptySpaceItem1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlItem2).EndInit();
             ((System.ComponentModel.ISupportInitialize)imageCollection1).EndInit();
-            ((System.ComponentModel.ISupportInitialize)popupMenu1).EndInit();
-            ((System.ComponentModel.ISupportInitialize)barManager1).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -384,5 +417,7 @@
         private DevExpress.XtraBars.BarDockControl barDockControlBottom;
         private DevExpress.XtraBars.BarDockControl barDockControlLeft;
         private DevExpress.XtraBars.BarDockControl barDockControlRight;
+        private DevExpress.XtraEditors.DropDownButton dropDownBtn;
+        private DevExpress.XtraLayout.LayoutControlItem layoutControlItem2;
     }
 }
