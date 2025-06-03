@@ -6,6 +6,10 @@ A windows based tool to **automate printing of ERPNext documents** based on cust
 Uses EFCore to create a SQLite database to store settings and print history.
 
 Example use case: Company has 5 branches, with a central e-invoicing device, that is integrated to update a tax signature on all sales. Once a user submits a document, the e-invoicing signature is appended (this could take a few seconds), after which the user needs to click print preview > print > select a printer > print. Instead of this, the user only submits the document, and within a few seconds, the document is printed, in the correct warehouse, to the preset printer.
+
+Example A5 and Thermal/Roll Paper Templates:
+![A5](https://i.imgur.com/ukW9E4p.png)
+![Roll Paper](https://i.imgur.com/SUkfuti.png)
 ## Features
 
 - *4 Print Engines* (in case of compatibility issues with different printers, paper sizes, etc)

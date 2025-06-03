@@ -101,7 +101,7 @@
     </Item5>
     <Item6 Ref="54" ControlType="ReportFooterBand" Name="ReportFooter" PrintAtBottom="true" HeightF="121.7415" KeepTogether="true">
       <Controls>
-        <Item1 Ref="55" ControlType="XRLabel" Name="label12" Multiline="true" Text="label12" SizeF="173.89705,28.474987" LocationFloat="141.48381,61.59795" Padding="2,2,0,0,96">
+        <Item1 Ref="55" ControlType="XRLabel" Name="label12" Multiline="true" Text="label12" SizeF="173.89705,28.474987" LocationFloat="141.48381,61.59795" Padding="2,2,0,0,100">
           <ExpressionBindings>
             <Item1 Ref="56" EventName="BeforePrint" PropertyName="Text" Expression="[data].[payments]" />
           </ExpressionBindings>
@@ -201,7 +201,7 @@
         </Item3>
       </Controls>
     </Item7>
-    <Item8 Ref="106" ControlType="DetailReportBand" Name="DetailReport" Level="0" DataSource="#Ref-0">
+    <Item8 Ref="106" ControlType="DetailReportBand" Name="DetailReport" Level="0" DataMember="data.items" DataSource="#Ref-0">
       <Bands>
         <Item1 Ref="107" ControlType="DetailBand" Name="Detail" KeepTogetherWithDetailReports="true" HeightF="18.312073" KeepTogether="true">
           <SortFields>
