@@ -49,7 +49,7 @@ namespace ERPNext_PowerPlay
                 if (LoginAttempt)
                 {
                     //Only do this when manually logging in
-                    SaveCheckboxes();
+                    SaveSettings();
                     GetWarehouses();    //List warehouses
                     GetUsers();    //List users
                 }
@@ -140,7 +140,7 @@ namespace ERPNext_PowerPlay
             }
         }
 
-        private async void SaveCheckboxes()
+        private async void SaveSettings()
         {
             try
             {
@@ -151,6 +151,7 @@ namespace ERPNext_PowerPlay
                         chkAutoStartPrinting.Checked ? new Settings() { Name = "AutoStartPrinting", Enabled = true } : new Settings() { Name = "AutoStartPrinting", Enabled = false },
                         chkLock.Checked ? new Settings() { Name = "Lock", Enabled = true } : new Settings() { Name = "Lock", Enabled = false },
                         spin_TimerValue.Value > 0 ? new Settings() { Name = "Timer", Enabled = true, Value = Convert.ToInt32(spin_TimerValue.Text) } : new Settings() { Name = "Timer", Enabled = false, Value = 0 },
+                        //txtExportConnString.Text.Length > 0 ? new Settings() { Name = "MSSQLConnStr", Enabled = true, StringValue = txtExportConnString.Text.Trim() } : new Settings() { Name = "MSSQLConnStr", Enabled = false, Value = 0 },
                     ];
 
                     Settings _autologin = new Settings();

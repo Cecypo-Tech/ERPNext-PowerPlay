@@ -1,4 +1,5 @@
 ﻿using DevExpress.CodeParser;
+using DevExpress.CodeParser.VB;
 using DevExpress.XtraBars;
 using DevExpress.XtraPrinting.Native;
 using DevExpress.XtraTabbedMdi;

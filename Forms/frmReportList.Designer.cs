@@ -35,6 +35,7 @@
             layoutControlItem2 = new DevExpress.XtraLayout.LayoutControlItem();
             btnSave = new DevExpress.XtraEditors.SimpleButton();
             layoutControl1 = new DevExpress.XtraLayout.LayoutControl();
+            labelControl1 = new DevExpress.XtraEditors.LabelControl();
             gc_ReportList = new DevExpress.XtraGrid.GridControl();
             reportListBindingSource = new BindingSource(components);
             gv_ReportList = new DevExpress.XtraGrid.Views.Grid.GridView();
@@ -49,7 +50,6 @@
             colDateModified = new DevExpress.XtraGrid.Columns.GridColumn();
             Root = new DevExpress.XtraLayout.LayoutControlGroup();
             layoutControlItem1 = new DevExpress.XtraLayout.LayoutControlItem();
-            labelControl1 = new DevExpress.XtraEditors.LabelControl();
             layoutControlItem3 = new DevExpress.XtraLayout.LayoutControlItem();
             emptySpaceItem2 = new DevExpress.XtraLayout.EmptySpaceItem();
             ((System.ComponentModel.ISupportInitialize)svgImageCollection1).BeginInit();
@@ -111,6 +111,15 @@
             layoutControl1.Size = new Size(1023, 464);
             layoutControl1.TabIndex = 1;
             layoutControl1.Text = "layoutControl1";
+            // 
+            // labelControl1
+            // 
+            labelControl1.Location = new Point(14, 401);
+            labelControl1.Name = "labelControl1";
+            labelControl1.Size = new Size(144, 39);
+            labelControl1.StyleController = layoutControl1;
+            labelControl1.TabIndex = 4;
+            labelControl1.Text = "Usable variables for reports; \r\n{from_date}\r\n{to_date}";
             // 
             // gc_ReportList
             // 
@@ -217,15 +226,6 @@
             layoutControlItem1.Size = new Size(1003, 387);
             layoutControlItem1.Spacing = new DevExpress.XtraLayout.Utils.Padding(2, 2, 2, 2);
             layoutControlItem1.TextVisible = false;
-            // 
-            // labelControl1
-            // 
-            labelControl1.Location = new Point(14, 401);
-            labelControl1.Name = "labelControl1";
-            labelControl1.Size = new Size(144, 39);
-            labelControl1.StyleController = layoutControl1;
-            labelControl1.TabIndex = 4;
-            labelControl1.Text = "Usable variables for reports; \r\n{from_date}\r\n{to_date}";
             // 
             // layoutControlItem3
             // 

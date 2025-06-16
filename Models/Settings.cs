@@ -17,6 +17,7 @@ namespace ERPNext_PowerPlay.Models
         public bool Enabled { get; set; }
         public string Name { get; set; }
         public int Value { get; set; } = 0;
+        public string StringValue { get; set; } = "";
 
     }
 }

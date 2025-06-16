@@ -20,6 +20,5 @@ namespace ERPNext_PowerPlay.Models
         public string EndPoint { get; set; }
         public string FieldList { get; set; }
         public string? FilterList { get; set; }
-        public bool? Export { get; set; }
     }
 }
