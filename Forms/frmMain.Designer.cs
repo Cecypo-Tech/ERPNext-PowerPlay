@@ -81,6 +81,7 @@
             ribbon.Name = "ribbon";
             ribbon.Pages.AddRange(new DevExpress.XtraBars.Ribbon.RibbonPage[] { ribbonPage1, ribbonPage2 });
             ribbon.RepositoryItems.AddRange(new DevExpress.XtraEditors.Repository.RepositoryItem[] { repositoryItemComboBox_PreviewDocTypes, repositoryItemTextEdit_PreviewDocName, repositoryItemLookUp_PreviewDocType });
+            ribbon.ShowApplicationButton = DevExpress.Utils.DefaultBoolean.False;
             ribbon.Size = new Size(889, 170);
             ribbon.StatusBar = ribbonStatusBar;
             // 

@@ -1,5 +1,6 @@
 ﻿using DevExpress.CodeParser;
 using DevExpress.CodeParser.VB;
+using DevExpress.Xpo;
 using DevExpress.XtraBars;
 using DevExpress.XtraPrinting.Native;
 using DevExpress.XtraTabbedMdi;
@@ -16,6 +17,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -29,7 +31,8 @@ namespace ERPNext_PowerPlay
         public frmMain()
         {
             InitializeComponent();
-
+            Version version = Assembly.GetExecutingAssembly().GetName().Version;
+            this.Text = string.Format("{0} - v{1}.{2}.{3}", Application.ProductName, version.Major, version.Minor, version.Build);
             //Preview Doctypes
             repositoryItemLookUp_PreviewDocType.DataSource = Enum.GetValues(typeof(DocType));
             CheckSettings();
