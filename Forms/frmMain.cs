@@ -3,6 +3,7 @@ using DevExpress.CodeParser.VB;
 using DevExpress.Xpo;
 using DevExpress.XtraBars;
 using DevExpress.XtraPrinting.Native;
+using DevExpress.XtraReports.Design;
 using DevExpress.XtraTabbedMdi;
 using ERPNext_PowerPlay.Forms;
 using ERPNext_PowerPlay.Helpers;
@@ -26,6 +27,7 @@ namespace ERPNext_PowerPlay
 {
     public partial class frmMain : DevExpress.XtraBars.Ribbon.RibbonForm
     {
+        public List<Settings> _settings;
         private System.Timers.Timer _timer = new System.Timers.Timer();
         bool _LoggedIn = false;
         public frmMain()
@@ -45,10 +47,10 @@ namespace ERPNext_PowerPlay
                 using (AppDbContext db = new AppDbContext())
                 {
                     db.Settings.Load();
-                    List<Settings> s = new List<Settings>();
-                    s = db.Settings.Local.ToBindingList().ToList();
+                    _settings = new List<Settings>();
+                    _settings = db.Settings.Local.ToBindingList().ToList();
 
-                    var item_login = s.Where(x => x.Name == "AutoLogin").First();
+                    var item_login = _settings.Where(x => x.Name == "AutoLogin").First();
                     if (item_login.Enabled == true)
                     {
                         frmLogin frm = new frmLogin();
@@ -69,31 +71,34 @@ namespace ERPNext_PowerPlay
                             }
                         }
 
-                        if (_LoggedIn)
-                            foreach (var item in s)
+                        foreach (var item in _settings)
+                        {
+                            switch (item.Name)
                             {
-                                switch (item.Name)
-                                {
-                                    case "AutoStartPrinting":
+                                case "AutoStartPrinting":
 
-                                        break;
-                                    case "Lock":
-                                        btnPrintSettings.Enabled = !item.Enabled;
-                                        btnReportList.Enabled = !item.Enabled;
-                                        break;
-                                    case "Timer":
-                                        int tmr = item.Value;
-                                        if (tmr > 0 && _LoggedIn)
+                                    break;
+                                case "Lock":
+                                    btnPrintSettings.Enabled = !item.Enabled;
+                                    btnReportList.Enabled = !item.Enabled;
+                                    break;
+                                case "Timer":
+                                    int tmr = item.Value;
+                                    if (tmr > 0 && _LoggedIn)
+                                    {
+                                        if (tmr < 30) tmr = 30;
+                                        _timer.Interval = 1000 * tmr;
+                                        Log.Information("Timer: {0} seconds", tmr);
+                                        if (_LoggedIn)
                                         {
-                                            _timer.Interval = 1000 * tmr;
                                             InitTimer();
                                             barToggleSwitchItem1.Checked = true;
                                         }
-                                        break;
-                                }
+                                    }
+                                    break;
                             }
+                        }
                     }
-
                 }
             }
             catch (Exception ex)
@@ -115,6 +120,7 @@ namespace ERPNext_PowerPlay
 
         private void btnLogout_ItemClick(object sender, ItemClickEventArgs e)
         {
+            StopTimer();
             _LoggedIn = false;
             btnLogin.Enabled = true;
             btnLogout.Enabled = false;
@@ -215,8 +221,8 @@ namespace ERPNext_PowerPlay
 
         public void InitTimer()
         {
+            StopTimer();
             _timer.Elapsed += OnTimerElapsed;
-            //timer1.Interval = 1000; // in miliseconds
             _timer.Start();
         }
         private volatile bool _requestStop = false;
@@ -225,12 +231,11 @@ namespace ERPNext_PowerPlay
         [STAThread]
         private async void OnTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            Debug.Print(DateTime.Now.ToString("HH:mm:ss"));
             Log.Information("Timer at {Time}", DateTime.Now.ToString("HH:mm:ss"));
 
             Thread t = new Thread((ThreadStart)(() =>
             {
-                Stop();
+                StopTimer();
 
                 PrintJobHelper printJobHelper = new PrintJobHelper(dbC);
                 printJobHelper.RunPrintJobsAsync();
@@ -240,16 +245,17 @@ namespace ERPNext_PowerPlay
             t.SetApartmentState(ApartmentState.STA);
             t.Start();
             t.Join();
-            if (barToggleSwitchItem1.Checked) Start();
+            if (barToggleSwitchItem1.Checked) StartTimer();
         }
-        private void Stop()
+        private void StopTimer()
         {
             _requestStop = true;
             _timer.Stop();
         }
 
-        private void Start()
+        private void StartTimer()
         {
+            _timer.Interval = _settings.Where(x => x.Name == "Timer").FirstOrDefault().Value * 1000; // Convert seconds to milliseconds
             _requestStop = false;
             _timer.Start();
         }
@@ -258,12 +264,17 @@ namespace ERPNext_PowerPlay
         {
             if (barToggleSwitchItem1.Checked)
             {
-                _timer.Start();
+                StartTimer();
             }
             else
             {
-                _timer.Stop();
+                StopTimer();
             }
+        }
+
+        private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            StopTimer();
         }
     }
 }

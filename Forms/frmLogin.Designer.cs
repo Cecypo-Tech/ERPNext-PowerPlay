@@ -42,17 +42,17 @@
             simpleSeparator1 = new DevExpress.XtraLayout.SimpleSeparator();
             simpleSeparator2 = new DevExpress.XtraLayout.SimpleSeparator();
             tabbedControlGroup1 = new DevExpress.XtraLayout.TabbedControlGroup();
+            layoutControlGroup1 = new DevExpress.XtraLayout.LayoutControlGroup();
+            layoutControlItem5 = new DevExpress.XtraLayout.LayoutControlItem();
+            layoutControlItem6 = new DevExpress.XtraLayout.LayoutControlItem();
+            layoutControlItem7 = new DevExpress.XtraLayout.LayoutControlItem();
+            layoutControlItem8 = new DevExpress.XtraLayout.LayoutControlItem();
             layoutControlGroup2 = new DevExpress.XtraLayout.LayoutControlGroup();
             layoutControlItem1 = new DevExpress.XtraLayout.LayoutControlItem();
             layoutControlItem2 = new DevExpress.XtraLayout.LayoutControlItem();
             layoutControlItem4 = new DevExpress.XtraLayout.LayoutControlItem();
             layoutControlItem3 = new DevExpress.XtraLayout.LayoutControlItem();
             simpleSeparator3 = new DevExpress.XtraLayout.SimpleSeparator();
-            layoutControlGroup1 = new DevExpress.XtraLayout.LayoutControlGroup();
-            layoutControlItem5 = new DevExpress.XtraLayout.LayoutControlItem();
-            layoutControlItem6 = new DevExpress.XtraLayout.LayoutControlItem();
-            layoutControlItem7 = new DevExpress.XtraLayout.LayoutControlItem();
-            layoutControlItem8 = new DevExpress.XtraLayout.LayoutControlItem();
             ((System.ComponentModel.ISupportInitialize)layoutControl1).BeginInit();
             layoutControl1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)spin_TimerValue.Properties).BeginInit();
@@ -63,17 +63,17 @@
             ((System.ComponentModel.ISupportInitialize)simpleSeparator1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)simpleSeparator2).BeginInit();
             ((System.ComponentModel.ISupportInitialize)tabbedControlGroup1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlGroup1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlItem5).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlItem6).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlItem7).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlItem8).BeginInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlGroup2).BeginInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem1).BeginInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem2).BeginInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem4).BeginInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem3).BeginInit();
             ((System.ComponentModel.ISupportInitialize)simpleSeparator3).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)layoutControlGroup1).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)layoutControlItem5).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)layoutControlItem6).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)layoutControlItem7).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)layoutControlItem8).BeginInit();
             SuspendLayout();
             // 
             // layoutControl1
@@ -97,11 +97,12 @@
             // 
             // spin_TimerValue
             // 
-            spin_TimerValue.EditValue = new decimal(new int[] { 10, 0, 0, 0 });
+            spin_TimerValue.EditValue = new decimal(new int[] { 30, 0, 0, 0 });
             spin_TimerValue.Location = new Point(157, 122);
             spin_TimerValue.Name = "spin_TimerValue";
             spin_TimerValue.Properties.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] { new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo) });
-            spin_TimerValue.Properties.MaxValue = new decimal(new int[] { 10, 0, 0, 0 });
+            spin_TimerValue.Properties.MaxValue = new decimal(new int[] { 10800, 0, 0, 0 });
+            spin_TimerValue.Properties.MinValue = new decimal(new int[] { 30, 0, 0, 0 });
             spin_TimerValue.Size = new Size(329, 22);
             spin_TimerValue.StyleController = layoutControl1;
             spin_TimerValue.TabIndex = 8;
@@ -196,9 +197,54 @@
             // 
             tabbedControlGroup1.Location = new Point(0, 2);
             tabbedControlGroup1.Name = "tabbedControlGroup1";
-            tabbedControlGroup1.SelectedTabPage = layoutControlGroup1;
+            tabbedControlGroup1.SelectedTabPage = layoutControlGroup2;
             tabbedControlGroup1.Size = new Size(490, 213);
             tabbedControlGroup1.TabPages.AddRange(new DevExpress.XtraLayout.BaseLayoutItem[] { layoutControlGroup2, layoutControlGroup1 });
+            // 
+            // layoutControlGroup1
+            // 
+            layoutControlGroup1.CaptionImageOptions.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("layoutControlGroup1.CaptionImageOptions.SvgImage");
+            layoutControlGroup1.CaptionImageOptions.SvgImageSize = new Size(16, 16);
+            layoutControlGroup1.CustomizationFormText = "Settings";
+            layoutControlGroup1.ExpandButtonVisible = true;
+            layoutControlGroup1.Items.AddRange(new DevExpress.XtraLayout.BaseLayoutItem[] { layoutControlItem5, layoutControlItem6, layoutControlItem7, layoutControlItem8 });
+            layoutControlGroup1.Location = new Point(0, 0);
+            layoutControlGroup1.Name = "layoutControlGroup1";
+            layoutControlGroup1.Size = new Size(466, 165);
+            layoutControlGroup1.Text = "Settings";
+            // 
+            // layoutControlItem5
+            // 
+            layoutControlItem5.Control = chkAutoLogin;
+            layoutControlItem5.Location = new Point(0, 0);
+            layoutControlItem5.Name = "layoutControlItem5";
+            layoutControlItem5.Size = new Size(466, 24);
+            layoutControlItem5.TextVisible = false;
+            // 
+            // layoutControlItem6
+            // 
+            layoutControlItem6.Control = chkAutoStartPrinting;
+            layoutControlItem6.Location = new Point(0, 24);
+            layoutControlItem6.Name = "layoutControlItem6";
+            layoutControlItem6.Size = new Size(466, 24);
+            layoutControlItem6.TextVisible = false;
+            // 
+            // layoutControlItem7
+            // 
+            layoutControlItem7.Control = chkLock;
+            layoutControlItem7.Location = new Point(0, 48);
+            layoutControlItem7.Name = "layoutControlItem7";
+            layoutControlItem7.Size = new Size(466, 24);
+            layoutControlItem7.TextVisible = false;
+            // 
+            // layoutControlItem8
+            // 
+            layoutControlItem8.Control = spin_TimerValue;
+            layoutControlItem8.Location = new Point(0, 72);
+            layoutControlItem8.Name = "layoutControlItem8";
+            layoutControlItem8.Size = new Size(466, 93);
+            layoutControlItem8.Text = "Timer Internal (seconds)";
+            layoutControlItem8.TextSize = new Size(121, 13);
             // 
             // layoutControlGroup2
             // 
@@ -251,58 +297,12 @@
             simpleSeparator3.Name = "simpleSeparator3";
             simpleSeparator3.Size = new Size(466, 1);
             // 
-            // layoutControlGroup1
-            // 
-            layoutControlGroup1.CaptionImageOptions.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("layoutControlGroup1.CaptionImageOptions.SvgImage");
-            layoutControlGroup1.CaptionImageOptions.SvgImageSize = new Size(16, 16);
-            layoutControlGroup1.CustomizationFormText = "Settings";
-            layoutControlGroup1.ExpandButtonVisible = true;
-            layoutControlGroup1.Items.AddRange(new DevExpress.XtraLayout.BaseLayoutItem[] { layoutControlItem5, layoutControlItem6, layoutControlItem7, layoutControlItem8 });
-            layoutControlGroup1.Location = new Point(0, 0);
-            layoutControlGroup1.Name = "layoutControlGroup1";
-            layoutControlGroup1.Size = new Size(466, 165);
-            layoutControlGroup1.Text = "Settings";
-            // 
-            // layoutControlItem5
-            // 
-            layoutControlItem5.Control = chkAutoLogin;
-            layoutControlItem5.Location = new Point(0, 0);
-            layoutControlItem5.Name = "layoutControlItem5";
-            layoutControlItem5.Size = new Size(466, 24);
-            layoutControlItem5.TextVisible = false;
-            // 
-            // layoutControlItem6
-            // 
-            layoutControlItem6.Control = chkAutoStartPrinting;
-            layoutControlItem6.Location = new Point(0, 24);
-            layoutControlItem6.Name = "layoutControlItem6";
-            layoutControlItem6.Size = new Size(466, 24);
-            layoutControlItem6.TextVisible = false;
-            // 
-            // layoutControlItem7
-            // 
-            layoutControlItem7.Control = chkLock;
-            layoutControlItem7.Location = new Point(0, 48);
-            layoutControlItem7.Name = "layoutControlItem7";
-            layoutControlItem7.Size = new Size(466, 24);
-            layoutControlItem7.TextVisible = false;
-            // 
-            // layoutControlItem8
-            // 
-            layoutControlItem8.Control = spin_TimerValue;
-            layoutControlItem8.Location = new Point(0, 72);
-            layoutControlItem8.Name = "layoutControlItem8";
-            layoutControlItem8.Size = new Size(466, 93);
-            layoutControlItem8.Text = "Timer Internal (seconds)";
-            layoutControlItem8.TextSize = new Size(121, 13);
-            // 
             // frmLogin
             // 
             AutoScaleDimensions = new SizeF(6F, 13F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(510, 235);
             Controls.Add(layoutControl1);
-            Font = new Font("Segoe UI", 8.25F);
             IconOptions.SvgImage = (DevExpress.Utils.Svg.SvgImage)resources.GetObject("frmLogin.IconOptions.SvgImage");
             Name = "frmLogin";
             Text = "Login";
@@ -316,17 +316,17 @@
             ((System.ComponentModel.ISupportInitialize)simpleSeparator1).EndInit();
             ((System.ComponentModel.ISupportInitialize)simpleSeparator2).EndInit();
             ((System.ComponentModel.ISupportInitialize)tabbedControlGroup1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlGroup1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlItem5).EndInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlItem6).EndInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlItem7).EndInit();
+            ((System.ComponentModel.ISupportInitialize)layoutControlItem8).EndInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlGroup2).EndInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem1).EndInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem2).EndInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem4).EndInit();
             ((System.ComponentModel.ISupportInitialize)layoutControlItem3).EndInit();
             ((System.ComponentModel.ISupportInitialize)simpleSeparator3).EndInit();
-            ((System.ComponentModel.ISupportInitialize)layoutControlGroup1).EndInit();
-            ((System.ComponentModel.ISupportInitialize)layoutControlItem5).EndInit();
-            ((System.ComponentModel.ISupportInitialize)layoutControlItem6).EndInit();
-            ((System.ComponentModel.ISupportInitialize)layoutControlItem7).EndInit();
-            ((System.ComponentModel.ISupportInitialize)layoutControlItem8).EndInit();
             ResumeLayout(false);
         }
 

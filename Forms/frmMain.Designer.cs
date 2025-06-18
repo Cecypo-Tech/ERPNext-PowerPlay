@@ -315,6 +315,7 @@
             StatusBar = ribbonStatusBar;
             Text = "ERPNext PowerPlay";
             WindowState = FormWindowState.Maximized;
+            FormClosing += frmMain_FormClosing;
             Resize += frmMain_Resize;
             ((System.ComponentModel.ISupportInitialize)ribbon).EndInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemTextEdit_PreviewDocName).EndInit();

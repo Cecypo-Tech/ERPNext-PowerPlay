@@ -31,6 +31,38 @@ namespace ERPNext_PowerPlay
         public frmLogin()
         {
             InitializeComponent();
+            LoadSettings();
+        }
+
+        private void LoadSettings()
+        {
+            try
+            {
+                using (AppDbContext db = new AppDbContext())
+                {
+                    db.Creds.Load();
+                    Cred cred = db.Creds.Local.ToBindingList().FirstOrDefault();
+                    if (cred != null)
+                    {   //Load saved credentials
+                        txtURL.Text = cred.URL;
+                        txtUSER.Text = cred.User;
+
+                        db.Settings.Load();
+                        List<Settings> s = new List<Settings>();
+                        s = db.Settings.Local.ToBindingList().ToList();
+                        chkAutoLogin.Checked = s.Where(x => x.Name == "AutoLogin").FirstOrDefault()?.Enabled ?? false;
+                        chkAutoStartPrinting.Checked = s.Where(x => x.Name == "AutoStartPrinting").FirstOrDefault()?.Enabled ?? false;
+                        chkLock.Checked = s.Where(x => x.Name == "Lock").FirstOrDefault()?.Enabled ?? false;
+                        spin_TimerValue.Value = s.Where(x => x.Name == "Timer").FirstOrDefault()?.Value ?? 0;
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error while loading settings");
+                XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private async void btnLogin_Click(object sender, EventArgs e)
@@ -58,13 +90,13 @@ namespace ERPNext_PowerPlay
             }
             catch (Exception ex)
             {
-                Log.Error(ex.Message);
+                Log.Error("btnLogin error.");
                 XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 btnLogin.Enabled = true;
             }
         }
 
-        public async Task<bool> AttemptLogin(string url,  string user, string pass)
+        public async Task<bool> AttemptLogin(string url, string user, string pass)
         {
             // Create a CookieContainer instance
             var cookieContainer = new CookieContainer();
@@ -130,14 +162,23 @@ namespace ERPNext_PowerPlay
 
         private void EnsureDBExists()
         {
-            using (AppDbContext db = new AppDbContext())
+            try
             {
-                bool created = db.Database.EnsureCreated();
-                if (created)
+                using (AppDbContext db = new AppDbContext())
                 {
-                    Log.Information("Database Created!");
+                    bool created = db.Database.EnsureCreated();
+                    if (created)
+                    {
+                        Log.Information("Database Created!");
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error while creating/checking database");
+                XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
         }
 
         private async void SaveSettings()
@@ -154,21 +195,19 @@ namespace ERPNext_PowerPlay
                         //txtExportConnString.Text.Length > 0 ? new Settings() { Name = "MSSQLConnStr", Enabled = true, StringValue = txtExportConnString.Text.Trim() } : new Settings() { Name = "MSSQLConnStr", Enabled = false, Value = 0 },
                     ];
 
+                    //Save credentials
+                    db.Creds.ExecuteDelete();
+                    db.Creds.Add(new Cred() { User = txtUSER.Text, Pass = txtPASS.Text, URL = txtURL.Text });
+                    
                     Settings _autologin = new Settings();
                     if (chkAutoLogin.Checked)
-                    {
                         _autologin = new Settings() { Name = "AutoLogin", Enabled = true };
-                        //Save credentials
-                        db.Creds.ExecuteDelete();
-                        db.Creds.Add(new Cred() { User = txtUSER.Text, Pass = txtPASS.Text, URL = txtURL.Text });
-                        db.SaveChanges();
-                    }
                     else
-                    { 
                         _autologin = new Settings() { Name = "AutoLogin", Enabled = false };
-                    }
+
                     s.Add(_autologin);
 
+                    //Clear settings and save new.
                     db.Settings.ExecuteDelete();
                     foreach (var item in s)
                     {
