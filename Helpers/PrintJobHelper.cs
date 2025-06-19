@@ -30,10 +30,12 @@ namespace ERPNext_PowerPlay.Helpers
                 foreach (PrinterSetting ps in db.PrinterSetting.Where(x => x.Enabled).ToList())
                 {
                     Frappe_DocList.FrappeDocList DocList = await new FrappeAPI().GetDocs2Print(ps);
+                    if (DocList == null) return;
                     var DocList_Filtered = DocList.data.Where(p => db.JobHistory.All(p2 => p2.Name != p.Name)); //Remove if already in job history
-                    if (DocList_Filtered.Count() != 0 && DocList.data.Count() != 0) Log.Information("Document List Filter Result: {0}/{1}", DocList_Filtered.Count(), DocList.data.Count());
                     if (DocList_Filtered != null)
                     {
+                        //if (DocList_Filtered.Count() != 0 && DocList.data.Count() != 0) Log.Information("Document List Filter Result: {0}/{1}", DocList_Filtered.Count(), DocList.data.Count());
+
                         if (DocList.data.Count()>0) Log.Information("Collected {0} Documents in {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
                         foreach (Frappe_DocList.data fd in DocList_Filtered)
                         {
@@ -55,6 +57,7 @@ namespace ERPNext_PowerPlay.Helpers
                         if (DocList_Filtered.Count() > 0) Log.Information("Processed {0} Documents in: {1}s", DocList_Filtered.Count(), clock.Elapsed.TotalSeconds.ToString());
                     }
                 }
+                clock.Stop();
             }
             catch (Exception ex)
             {

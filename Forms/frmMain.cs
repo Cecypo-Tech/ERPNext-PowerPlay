@@ -38,6 +38,7 @@ namespace ERPNext_PowerPlay
             //Preview Doctypes
             repositoryItemLookUp_PreviewDocType.DataSource = Enum.GetValues(typeof(DocType));
             CheckSettings();
+            _timer.Elapsed += OnTimerElapsed;
         }
 
         private async void CheckSettings()
@@ -87,12 +88,14 @@ namespace ERPNext_PowerPlay
                                     if (tmr > 0 && _LoggedIn)
                                     {
                                         if (tmr < 30) tmr = 30;
+                                        tmr = 15;
                                         _timer.Interval = 1000 * tmr;
                                         Log.Information("Timer: {0} seconds", tmr);
                                         if (_LoggedIn)
                                         {
                                             InitTimer();
                                             barToggleSwitchItem1.Checked = true;
+                                            StartTimer();
                                         }
                                     }
                                     break;
@@ -222,8 +225,8 @@ namespace ERPNext_PowerPlay
         public void InitTimer()
         {
             StopTimer();
-            _timer.Elapsed += OnTimerElapsed;
-            _timer.Start();
+            StartTimer();
+            
         }
         private volatile bool _requestStop = false;
         AppDbContext dbC = new AppDbContext();
@@ -231,12 +234,11 @@ namespace ERPNext_PowerPlay
         [STAThread]
         private async void OnTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            Log.Information("Timer at {Time}", DateTime.Now.ToString("HH:mm:ss"));
+            Log.Information("Job check at {Time}", DateTime.Now.ToString("HH:mm:ss"));
 
             Thread t = new Thread((ThreadStart)(() =>
             {
-                StopTimer();
-
+              
                 PrintJobHelper printJobHelper = new PrintJobHelper(dbC);
                 printJobHelper.RunPrintJobsAsync();
 
@@ -245,7 +247,6 @@ namespace ERPNext_PowerPlay
             t.SetApartmentState(ApartmentState.STA);
             t.Start();
             t.Join();
-            if (barToggleSwitchItem1.Checked) StartTimer();
         }
         private void StopTimer()
         {

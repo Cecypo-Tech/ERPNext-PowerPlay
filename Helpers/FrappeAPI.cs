@@ -85,7 +85,7 @@ namespace ERPNext_PowerPlay.Helpers
                 List<string> UserList = new List<string>();
                 string userFilter = "";
 
-                if (!string.IsNullOrEmpty(ps.UserFilter))
+               if (!string.IsNullOrEmpty(ps.UserFilter))
                 {
                     UserList = ps.UserFilter.Split(',').ToList();
                     foreach (string u in UserList)
