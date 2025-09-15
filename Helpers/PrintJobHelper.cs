@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Serilog;
 using static DevExpress.Xpo.Helpers.AssociatedCollectionCriteriaHelper;
+using DevExpress.CodeParser;
 
 namespace ERPNext_PowerPlay.Helpers
 {
@@ -31,31 +32,22 @@ namespace ERPNext_PowerPlay.Helpers
                 {
                     Frappe_DocList.FrappeDocList DocList = await new FrappeAPI().GetDocs2Print(ps);
                     if (DocList == null) return;
-                    var DocList_Filtered = DocList.data.Where(p => db.JobHistory.All(p2 => p2.Name != p.Name)); //Remove if already in job history
-                    if (DocList_Filtered != null)
+                    if (DocList.data.Count() > 0) Log.Information("[{0}] Collected {1} Documents in {2}s", ps.ID, DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
+                    foreach (Frappe_DocList.data fd in DocList.data)
                     {
-                        //if (DocList_Filtered.Count() != 0 && DocList.data.Count() != 0) Log.Information("Document List Filter Result: {0}/{1}", DocList_Filtered.Count(), DocList.data.Count());
-
-                        if (DocList.data.Count()>0) Log.Information("Collected {0} Documents in {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
-                        foreach (Frappe_DocList.data fd in DocList_Filtered)
+                        bool processed = await p.PrintDoc(fd, ps);//.Frappe_GetDoc(fd.name, ps);
+                        if (processed)
                         {
-                            if (!db.JobHistory.Contains(fd))
-                            {
-                                bool processed = await p.PrintDoc(fd);//.Frappe_GetDoc(fd.name, ps);
-                                if (processed)
-                                {
-                                    string doctype = ps.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
-                                    await new FrappeAPI().UpdateCount(string.Format("/api/resource/{0}", doctype), fd);
-                                    await SaveJob(fd);
-                                }
-                            }
-                            else
-                            {
-                                Log.Warning("Document {0}/{1} previously processed!", fd.DocType.ToString(), fd.Name);
-                            }
+                            string doctype = ps.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
+                            await new FrappeAPI().UpdateCount(string.Format("/api/resource/{0}", doctype), fd);
+                            await SaveJob(fd);
                         }
-                        if (DocList_Filtered.Count() > 0) Log.Information("Processed {0} Documents in: {1}s", DocList_Filtered.Count(), clock.Elapsed.TotalSeconds.ToString());
+                        else
+                        {
+                            Log.Warning("Document {0}/{1} failed PrindDoc()!", fd.DocType.ToString(), fd.Name);
+                        }
                     }
+                    if (DocList.data.Count() > 0) Log.Information("Processed {0} Documents in: {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
                 }
                 clock.Stop();
             }

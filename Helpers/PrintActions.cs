@@ -71,7 +71,7 @@ namespace ERPNext_PowerPlay.Helpers
             }
         }
         [STAThread]
-        public async Task<bool> PrintDoc(Frappe_DocList.data doc)
+        public async Task<bool> PrintDoc(Frappe_DocList.data doc, PrinterSetting printrow)
         {
             try
             {
@@ -80,67 +80,70 @@ namespace ERPNext_PowerPlay.Helpers
                 filename = Path.Combine(Path.GetTempPath(), filepart);
                 byte[] byteData;
                 bool success = false;
+                if (printrow == null) return false;
 
-                AppDbContext db = new AppDbContext();
-                db.PrinterSetting.Load();
-                List<PrinterSetting> ps = db.PrinterSetting.ToList();
-                foreach (PrinterSetting printrow in db.PrinterSetting.Where(x => x.DocType == doc.DocType))
+                //AppDbContext db = new AppDbContext();
+                //db.PrinterSetting.Load();
+                //List<PrinterSetting> ps = db.PrinterSetting.ToList();
+                //foreach (PrinterSetting printrow in db.PrinterSetting.Where(x => x.DocType == doc.DocType))
+                //{
+                if (PrinterExists(printrow.Printer))
                 {
-                    if (PrinterExists(printrow.Printer))
+                    Log.Information("[{0}] Printing {1} to {2}", printrow.ID, doc.Name, printrow.Printer.ToString());
+                    switch (printrow.PrintEngine)
                     {
-                        switch (printrow.PrintEngine)
-                        {
-                            case PrintEngine.FrappePDF:
-                                byteData = await getFrappeDoc_AsBytes(doc.Name, printrow);
+                        case PrintEngine.FrappePDF:
+                            byteData = await getFrappeDoc_AsBytes(doc.Name, printrow);
 
-                                success = await Task.Run(() => PrintDX(doc.Name, byteData, printrow));
-                                break;
-                            case PrintEngine.SumatraPDF:
-                                byteData = await getFrappeDoc_AsBytes(doc.Name, printrow);
-                                using (MemoryStream ms = new MemoryStream(byteData))
-                                    File.WriteAllBytes(filename, ms.ToArray());
+                            success = await Task.Run(() => PrintDX(doc.Name, byteData, printrow));
+                            break;
+                        case PrintEngine.SumatraPDF:
+                            byteData = await getFrappeDoc_AsBytes(doc.Name, printrow);
+                            using (MemoryStream ms = new MemoryStream(byteData))
+                                File.WriteAllBytes(filename, ms.ToArray());
 
-                                success = await Task.Run(() => PrintSumatra(doc.Name, printrow, filename));
-                                break;
-                            case PrintEngine.Ghostscript:
-                                byteData = await getFrappeDoc_AsBytes(doc.Name, printrow);
-                                using (MemoryStream ms = new MemoryStream(byteData))
-                                    File.WriteAllBytes(filename, ms.ToArray());
+                            success = await Task.Run(() => PrintSumatra(doc.Name, printrow, filename));
+                            break;
+                        case PrintEngine.Ghostscript:
+                            byteData = await getFrappeDoc_AsBytes(doc.Name, printrow);
+                            using (MemoryStream ms = new MemoryStream(byteData))
+                                File.WriteAllBytes(filename, ms.ToArray());
 
-                                success = await Task.Run(() => PrintGhostScript(doc.Name, printrow, filename));
-                                break;
-                            case PrintEngine.CustomTemplate:
-                                string doctype = printrow.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
-                                string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", doctype), doc.Name); //Full JSON for this document
-                                //success = await Task.Run(() => PrintREPX(doc.Name, jsonDoc, printrow));
-                                //success = PrintREPX(doc.Name, jsonDoc, printrow);
-                                Thread t = new Thread((ThreadStart)(() => {
-                                    success = PrintREPX(doc.Name, jsonDoc, printrow);
-                                }));
+                            success = await Task.Run(() => PrintGhostScript(doc.Name, printrow, filename));
+                            break;
+                        case PrintEngine.CustomTemplate:
+                            string doctype = printrow.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
+                            string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", doctype), doc.Name); //Full JSON for this document
+                                                                                                                                       //success = await Task.Run(() => PrintREPX(doc.Name, jsonDoc, printrow));
+                                                                                                                                       //success = PrintREPX(doc.Name, jsonDoc, printrow);
+                            Thread t = new Thread((ThreadStart)(() =>
+                            {
+                                success = PrintREPX(doc.Name, jsonDoc, printrow);
+                            }));
 
-                                // Run your code from a thread that joins the STA Thread
-                                t.SetApartmentState(ApartmentState.STA);
-                                t.Start();
-                                t.Join();
-                                break;
-                        }
-                        try
-                        {
-                            File.Delete(filename);
-                        }
-                        catch (Exception exFileDelete)
-                        {
-                            Log.Error(exFileDelete, "Failed to delete temp file {0}", filename);
-                        }
-                        if (success) Log.Information("[Printed] {0} -> {1}.{2}", doc.Name, printrow.PrintEngine.ToString(), printrow.Printer.ToString());
-                        return success;
+                            // Run your code from a thread that joins the STA Thread
+                            t.SetApartmentState(ApartmentState.STA);
+                            t.Start();
+                            t.Join();
+                            break;
                     }
-                    else
+                    try
                     {
-                        Log.Error("Printer not found: {0}", printrow.Printer.ToString());
-                        return false;
+                        File.Delete(filename);
                     }
+                    catch (Exception exFileDelete)
+                    {
+                        Log.Error(exFileDelete, "Failed to delete temp file {0}", filename);
+                    }
+                    if (success) Log.Information("[{0}] Printed {1} to {2}", printrow.ID, doc.Name, printrow.Printer.ToString());
+                    return success;
                 }
+                else
+                {
+                    Log.Error("Printer not found: {0}", printrow.Printer.ToString());
+                    return false;
+                }
+                //}
                 return true; //Once per document, not per print (which could fail even if a printer is renamed)
             }
             catch (Exception ex)

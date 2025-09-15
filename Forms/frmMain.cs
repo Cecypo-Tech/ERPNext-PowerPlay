@@ -88,7 +88,6 @@ namespace ERPNext_PowerPlay
                                     if (tmr > 0 && _LoggedIn)
                                     {
                                         if (tmr < 30) tmr = 30;
-                                        tmr = 15;
                                         _timer.Interval = 1000 * tmr;
                                         Log.Information("Timer: {0} seconds", tmr);
                                         if (_LoggedIn)
@@ -164,10 +163,18 @@ namespace ERPNext_PowerPlay
                                 Serilog.Log.Information("SumatraPDF does not have a preview method. Select FrappePDF or CustomTemplate.");
                                 break;
                             case PrintEngine.CustomTemplate:
-                                string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", doctype), docName); //Full JSON for this document
-                                //await
-                                pa.PrintREPX(docName, jsonDoc, ps, true);
-                                break;
+                                try
+                                {
+                                    string jsonDoc = await new FrappeAPI().GetAsString(string.Format("api/resource/{0}/", doctype), docName); //Full JSON for this document
+                                    //Log.Information("jsondoc: {0}", jsonDoc);
+                                    pa.PrintREPX(docName, jsonDoc, ps, true);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Error(ex, "Error in Custom Template Print Preview");
+                                    MessageBox.Show("Error in Custom Template Print Preview: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                }
+                                    break;
                         }
                     }
                 }
@@ -265,10 +272,12 @@ namespace ERPNext_PowerPlay
         {
             if (barToggleSwitchItem1.Checked)
             {
+                Log.Information("Starting Timer");
                 StartTimer();
             }
             else
             {
+                Log.Information("Stopping Timer");
                 StopTimer();
             }
         }

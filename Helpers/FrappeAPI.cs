@@ -33,7 +33,7 @@ namespace ERPNext_PowerPlay.Helpers
             }
             catch (Exception exSQL)
             {
-                Log.Error(exSQL, exSQL.Message);
+                Log.Error(exSQL, exSQL.Message + Environment.NewLine + "Failing Endpoint: " + api_endpoint);
                 return "";
             }
         }
@@ -56,7 +56,7 @@ namespace ERPNext_PowerPlay.Helpers
             }
             catch (Exception exSQL)
             {
-                Log.Error(exSQL, exSQL.Message);
+                Log.Error(exSQL, exSQL.Message + Environment.NewLine + "Failing Endpoint: " + api_endpoint);
                 return null;
             }
         }
@@ -65,6 +65,7 @@ namespace ERPNext_PowerPlay.Helpers
         {   //With cookies
             Frappe_DocList.FrappeDocList docList = new Frappe_DocList.FrappeDocList();
             docList.data = new List<Frappe_DocList.data>();
+            string FilterStr = "";
             try
             {
                 //for this ps.doctype, get all docs, with fileds and filters
@@ -85,7 +86,7 @@ namespace ERPNext_PowerPlay.Helpers
                 List<string> UserList = new List<string>();
                 string userFilter = "";
 
-               if (!string.IsNullOrEmpty(ps.UserFilter))
+                if (!string.IsNullOrEmpty(ps.UserFilter))
                 {
                     UserList = ps.UserFilter.Split(',').ToList();
                     foreach (string u in UserList)
@@ -95,15 +96,18 @@ namespace ERPNext_PowerPlay.Helpers
                     filters += userFilter;
                 }
 
-                string FilterStr = string.Format("/api/resource/{0}?fields={1}&filters=[{2}]&limit_page_length={3}", doctype, fields, filters, 10);
-
+                FilterStr = string.Format("api/resource/{0}?fields={1}&filters=[{2}]&limit_page_length={3}", doctype, fields, filters, 2);
                 //Get the docs
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}", Program.FrappeURL, FilterStr));
                 using (var handler = new HttpClientHandler() { CookieContainer = Program.Cookies })
                 using (var client = new HttpClient(handler) { BaseAddress = new Uri(Program.FrappeURL) })
                 {
                     HttpResponseMessage response_qr = await client.SendAsync(request);
-                    response_qr.EnsureSuccessStatusCode();
+                    if (!response_qr.IsSuccessStatusCode )
+                    {
+                        Log.Error("Failing Endpoint: " + string.Format("{0}/{1}", Program.FrappeURL, FilterStr));
+                        return null;
+                    }
 
                     //  //If preset fields;
                     //docList = await response_qr.Content.ReadFromJsonAsync<Frappe_DocList.FrappeDocList>();
@@ -181,7 +185,7 @@ namespace ERPNext_PowerPlay.Helpers
             }
             catch (Exception exSQL)
             {
-                Log.Error(exSQL, exSQL.Message);
+                Log.Error(exSQL, exSQL.Message + Environment.NewLine + "Failing Endpoint: " + string.Format("{0}/{1}", Program.FrappeURL, FilterStr));
                 return null;
             }
         }
@@ -201,7 +205,7 @@ namespace ERPNext_PowerPlay.Helpers
                     request.Content = content;
                     HttpResponseMessage response = await client.SendAsync(request);
                     response.EnsureSuccessStatusCode();
-                    Console.WriteLine(await response.Content.ReadAsStringAsync());
+                    Log.Information("Updated {0} Print Count from {1} to {2}", doc.Name, doc.custom_print_count, newCount);
                     return true;
                 }
             }
