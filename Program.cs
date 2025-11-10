@@ -18,7 +18,7 @@ namespace ERPNext_PowerPlay
         public static string FrappeURL = "";
         public static string FrappeUser = "";
         public static string MyAppDir = "";
-        public static CookieContainer Cookies = new CookieContainer();
+        public static string ApiToken = "";
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
