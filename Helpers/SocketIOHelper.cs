@@ -289,7 +289,7 @@ namespace ERPNext_PowerPlay.Helpers
         /// <summary>
         /// Run print job for a specific Sales Invoice document
         /// </summary>
-        [System.Threading.STAThread]
+        [STAThread]
         private async void RunPrintJobForDocument(string documentName)
         {
             try
@@ -299,7 +299,7 @@ namespace ERPNext_PowerPlay.Helpers
 
                 // Get all enabled printer settings for Sales Invoice
                 var printerSettings = context.PrinterSetting
-                    .Where(x => x.Enabled && x.DocType == Models.DocTypes.Sales_Invoice)
+                    .Where(x => x.Enabled && x.DocType ==  DocType.SalesInvoice)
                     .ToList();
 
                 foreach (var ps in printerSettings)
