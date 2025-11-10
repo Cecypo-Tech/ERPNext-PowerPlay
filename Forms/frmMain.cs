@@ -289,7 +289,7 @@ namespace ERPNext_PowerPlay
         private async void frmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             StopTimer();
-            await DisconnectSocketIO();
+            //await DisconnectSocketIO();
         }
 
         /// <summary>
