@@ -63,7 +63,7 @@ namespace ERPNext_PowerPlay
                         else
                         {
                             Cred cred = db.Creds.Local.ToBindingList().FirstOrDefault();
-                            bool LoginAttempt = await frm.AttemptLogin(cred.URL, cred.User, cred.Pass);
+                            bool LoginAttempt = await frm.AttemptLogin(cred.URL, cred.APIKey, cred.Secret);
                             if (LoginAttempt)
                             {
                                 btnLogin.Enabled = false;
