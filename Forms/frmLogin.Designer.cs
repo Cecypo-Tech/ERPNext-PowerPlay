@@ -34,9 +34,9 @@
             chkLock = new CheckBox();
             chkAutoStartPrinting = new CheckBox();
             chkAutoLogin = new CheckBox();
-            txtPASS = new DevExpress.XtraEditors.TextEdit();
+            txtAPISecret = new DevExpress.XtraEditors.TextEdit();
             btnLogin = new DevExpress.XtraEditors.SimpleButton();
-            txtUSER = new DevExpress.XtraEditors.TextEdit();
+            txtAPIKey = new DevExpress.XtraEditors.TextEdit();
             txtURL = new DevExpress.XtraEditors.ButtonEdit();
             Root = new DevExpress.XtraLayout.LayoutControlGroup();
             simpleSeparator1 = new DevExpress.XtraLayout.SimpleSeparator();
@@ -56,8 +56,8 @@
             ((System.ComponentModel.ISupportInitialize)layoutControl1).BeginInit();
             layoutControl1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)spin_TimerValue.Properties).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)txtPASS.Properties).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)txtUSER.Properties).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)txtAPISecret.Properties).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)txtAPIKey.Properties).BeginInit();
             ((System.ComponentModel.ISupportInitialize)txtURL.Properties).BeginInit();
             ((System.ComponentModel.ISupportInitialize)Root).BeginInit();
             ((System.ComponentModel.ISupportInitialize)simpleSeparator1).BeginInit();
@@ -82,9 +82,9 @@
             layoutControl1.Controls.Add(chkLock);
             layoutControl1.Controls.Add(chkAutoStartPrinting);
             layoutControl1.Controls.Add(chkAutoLogin);
-            layoutControl1.Controls.Add(txtPASS);
+            layoutControl1.Controls.Add(txtAPISecret);
             layoutControl1.Controls.Add(btnLogin);
-            layoutControl1.Controls.Add(txtUSER);
+            layoutControl1.Controls.Add(txtAPIKey);
             layoutControl1.Controls.Add(txtURL);
             layoutControl1.Dock = DockStyle.Fill;
             layoutControl1.Location = new Point(0, 0);
@@ -133,15 +133,15 @@
             chkAutoLogin.TabIndex = 5;
             chkAutoLogin.Text = "Auto Login";
             chkAutoLogin.UseVisualStyleBackColor = true;
-            // 
-            // txtPASS
-            // 
-            txtPASS.Location = new Point(157, 102);
-            txtPASS.Name = "txtPASS";
-            txtPASS.Properties.UseSystemPasswordChar = true;
-            txtPASS.Size = new Size(329, 22);
-            txtPASS.StyleController = layoutControl1;
-            txtPASS.TabIndex = 3;
+            //
+            // txtAPISecret
+            //
+            txtAPISecret.Location = new Point(157, 102);
+            txtAPISecret.Name = "txtAPISecret";
+            txtAPISecret.Properties.UseSystemPasswordChar = true;
+            txtAPISecret.Size = new Size(329, 22);
+            txtAPISecret.StyleController = layoutControl1;
+            txtAPISecret.TabIndex = 3;
             // 
             // btnLogin
             // 
@@ -154,14 +154,14 @@
             btnLogin.Text = "&Login";
             btnLogin.ToolTip = "Login & Save Settings";
             btnLogin.Click += btnLogin_Click;
-            // 
-            // txtUSER
-            // 
-            txtUSER.Location = new Point(157, 76);
-            txtUSER.Name = "txtUSER";
-            txtUSER.Size = new Size(329, 22);
-            txtUSER.StyleController = layoutControl1;
-            txtUSER.TabIndex = 2;
+            //
+            // txtAPIKey
+            //
+            txtAPIKey.Location = new Point(157, 76);
+            txtAPIKey.Name = "txtAPIKey";
+            txtAPIKey.Size = new Size(329, 22);
+            txtAPIKey.StyleController = layoutControl1;
+            txtAPIKey.TabIndex = 2;
             // 
             // txtURL
             // 
@@ -264,23 +264,23 @@
             layoutControlItem1.Size = new Size(466, 26);
             layoutControlItem1.Text = "URL";
             layoutControlItem1.TextSize = new Size(121, 13);
-            // 
+            //
             // layoutControlItem2
-            // 
-            layoutControlItem2.Control = txtUSER;
+            //
+            layoutControlItem2.Control = txtAPIKey;
             layoutControlItem2.Location = new Point(0, 26);
             layoutControlItem2.Name = "layoutControlItem2";
             layoutControlItem2.Size = new Size(466, 26);
-            layoutControlItem2.Text = "Username";
+            layoutControlItem2.Text = "API Key";
             layoutControlItem2.TextSize = new Size(121, 13);
-            // 
+            //
             // layoutControlItem4
-            // 
-            layoutControlItem4.Control = txtPASS;
+            //
+            layoutControlItem4.Control = txtAPISecret;
             layoutControlItem4.Location = new Point(0, 52);
             layoutControlItem4.Name = "layoutControlItem4";
             layoutControlItem4.Size = new Size(466, 26);
-            layoutControlItem4.Text = "Password";
+            layoutControlItem4.Text = "API Secret";
             layoutControlItem4.TextSize = new Size(121, 13);
             // 
             // layoutControlItem3
@@ -309,8 +309,8 @@
             ((System.ComponentModel.ISupportInitialize)layoutControl1).EndInit();
             layoutControl1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)spin_TimerValue.Properties).EndInit();
-            ((System.ComponentModel.ISupportInitialize)txtPASS.Properties).EndInit();
-            ((System.ComponentModel.ISupportInitialize)txtUSER.Properties).EndInit();
+            ((System.ComponentModel.ISupportInitialize)txtAPISecret.Properties).EndInit();
+            ((System.ComponentModel.ISupportInitialize)txtAPIKey.Properties).EndInit();
             ((System.ComponentModel.ISupportInitialize)txtURL.Properties).EndInit();
             ((System.ComponentModel.ISupportInitialize)Root).EndInit();
             ((System.ComponentModel.ISupportInitialize)simpleSeparator1).EndInit();
@@ -333,9 +333,9 @@
         #endregion
 
         private DevExpress.XtraLayout.LayoutControl layoutControl1;
-        private DevExpress.XtraEditors.TextEdit txtPASS;
+        private DevExpress.XtraEditors.TextEdit txtAPISecret;
         private DevExpress.XtraEditors.SimpleButton btnLogin;
-        private DevExpress.XtraEditors.TextEdit txtUSER;
+        private DevExpress.XtraEditors.TextEdit txtAPIKey;
         private DevExpress.XtraLayout.LayoutControlGroup Root;
         private DevExpress.XtraLayout.LayoutControlItem layoutControlItem1;
         private DevExpress.XtraLayout.LayoutControlItem layoutControlItem2;
