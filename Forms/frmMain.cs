@@ -29,7 +29,6 @@ namespace ERPNext_PowerPlay
     {
         public List<Settings> _settings;
         private System.Timers.Timer _timer = new System.Timers.Timer();
-        private SocketIOHelper _socketIOHelper;
         bool _LoggedIn = false;
         public frmMain()
         {
@@ -70,7 +69,6 @@ namespace ERPNext_PowerPlay
                                 btnLogin.Enabled = false;
                                 btnLogout.Enabled = true;
                                 _LoggedIn = true;
-                                await InitializeSocketIO();
                             }
                         }
 
@@ -111,7 +109,7 @@ namespace ERPNext_PowerPlay
             }
         }
 
-        private async void btnLogin_ItemClick(object sender, ItemClickEventArgs e)
+        private void btnLogin_ItemClick(object sender, ItemClickEventArgs e)
         {
             frmLogin frm = new frmLogin();
             if (frm.ShowDialog() == DialogResult.OK)
@@ -119,14 +117,12 @@ namespace ERPNext_PowerPlay
                 btnLogin.Enabled = false;
                 btnLogout.Enabled = true;
                 _LoggedIn = true;
-                await InitializeSocketIO();
             }
         }
 
-        private async void btnLogout_ItemClick(object sender, ItemClickEventArgs e)
+        private void btnLogout_ItemClick(object sender, ItemClickEventArgs e)
         {
             StopTimer();
-            await DisconnectSocketIO();
             _LoggedIn = false;
             btnLogin.Enabled = true;
             btnLogout.Enabled = false;
@@ -286,63 +282,9 @@ namespace ERPNext_PowerPlay
             }
         }
 
-        /// <summary>
-        /// Initialize and connect to Frappe's socket.io server for real-time Sales Invoice events
-        /// </summary>
-        private async Task InitializeSocketIO()
-        {
-            try
-            {
-                if (_socketIOHelper != null && _socketIOHelper.IsConnected)
-                {
-                    Log.Information("Socket.IO already connected");
-                    return;
-                }
-
-                Log.Information("Initializing Socket.IO connection for real-time events");
-                _socketIOHelper = new SocketIOHelper(dbC);
-                bool connected = await _socketIOHelper.ConnectToSocketIO();
-
-                if (connected)
-                {
-                    Log.Information("Socket.IO connection established successfully");
-                }
-                else
-                {
-                    Log.Warning("Failed to establish Socket.IO connection");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error initializing Socket.IO: {0}", ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Disconnect from socket.io server
-        /// </summary>
-        private async Task DisconnectSocketIO()
-        {
-            try
-            {
-                if (_socketIOHelper != null)
-                {
-                    Log.Information("Disconnecting from Socket.IO");
-                    await _socketIOHelper.Disconnect();
-                    _socketIOHelper.Dispose();
-                    _socketIOHelper = null;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error disconnecting from Socket.IO: {0}", ex.Message);
-            }
-        }
-
-        private async void frmMain_FormClosing(object sender, FormClosingEventArgs e)
+        private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             StopTimer();
-            await DisconnectSocketIO();
         }
     }
 }
