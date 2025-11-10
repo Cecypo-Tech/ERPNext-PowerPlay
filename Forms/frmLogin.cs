@@ -45,7 +45,8 @@ namespace ERPNext_PowerPlay
                     if (cred != null)
                     {   //Load saved credentials
                         txtURL.Text = cred.URL;
-                        txtUSER.Text = cred.User;
+                        txtAPIKey.Text = cred.APIKey;
+                        txtAPISecret.Text = cred.Secret;
 
                         db.Settings.Load();
                         List<Settings> s = new List<Settings>();
@@ -71,13 +72,15 @@ namespace ERPNext_PowerPlay
             {
                 Program.FrappeUser = "";
                 Program.FrappeURL = "";
+                Program.ApiToken = "";
 
-                if (txtURL.Text.Length == 0 || txtUSER.Text.Length == 0 || txtPASS.Text.Length == 0) return;
+                if (txtURL.Text.Length == 0 || txtAPIKey.Text.Length == 0 || txtAPISecret.Text.Length == 0) return;
                 txtURL.Text = txtURL.Text.Trim();
-                txtUSER.Text = txtUSER.Text.Trim();
+                txtAPIKey.Text = txtAPIKey.Text.Trim();
+                txtAPISecret.Text = txtAPISecret.Text.Trim();
                 btnLogin.Enabled = false;
 
-                bool LoginAttempt = await AttemptLogin(txtURL.Text, txtUSER.Text, txtPASS.Text);
+                bool LoginAttempt = await AttemptLogin(txtURL.Text, txtAPIKey.Text, txtAPISecret.Text);
                 if (LoginAttempt)
                 {
                     //Only do this when manually logging in
@@ -96,66 +99,73 @@ namespace ERPNext_PowerPlay
             }
         }
 
-        public async Task<bool> AttemptLogin(string url, string user, string pass)
+        public async Task<bool> AttemptLogin(string url, string apiKey, string apiSecret)
         {
-            // Create a CookieContainer instance
-            var cookieContainer = new CookieContainer();
-
-            // Create an HttpClientHandler and assign the CookieContainer to it
-            var handler = new HttpClientHandler
+            try
             {
-                CookieContainer = cookieContainer,
-                UseCookies = true, // Ensure that the handler uses the CookieContainer
-            };
+                // For API Key/Secret authentication, we don't need to call a login endpoint
+                // We simply construct the token and test it with a simple API call
+                string token = $"{apiKey}:{apiSecret}";
+                Program.ApiToken = token;
+                Program.FrappeURL = url;
+                Program.FrappeUser = apiKey; // Store API Key as user identifier
 
-            // Create an HttpClient instance with the HttpClientHandler
-            using (var client = new HttpClient(handler))
-            {
-                var uri = new Uri(url + "/api/method/login");
-                var request = new HttpRequestMessage(HttpMethod.Post, uri);
-                request.Headers.Add("Accept", "application/json");
-                dynamic login = new System.Dynamic.ExpandoObject();
-                login.usr = user;
-                login.pwd = pass;
-                var content = new StringContent(JsonSerializer.Serialize(login), Encoding.UTF8, "application/json");
-                request.Content = content;
-                var response = await client.SendAsync(request);
-                response.EnsureSuccessStatusCode();
-                JsonNode data = JsonSerializer.Deserialize<JsonNode>(response.Content.ReadAsStringAsync().Result);
-                if (data != null)
+                // Test the API credentials by making a simple API call
+                var testRequest = new HttpRequestMessage(HttpMethod.Get, $"{url}/api/method/frappe.auth.get_logged_user");
+                testRequest.Headers.Add("Authorization", $"token {token}");
+
+                using (var client = new HttpClient())
                 {
-                    Log.Information(data.ToString());
+                    var response = await client.SendAsync(testRequest);
+
                     if (response.IsSuccessStatusCode)
                     {
-                        var loggedin = data["message"].ToString();
-                        if (loggedin.Contains("Logged In"))
-                        {
-                            Program.FrappeUser = login.usr;
-                            Program.FrappeURL = url;
-                            Program.Cookies.Add(cookieContainer.GetCookies(uri));
-
-                            Log.Information("Logged into " + url);
-
-                            EnsureDBExists();
-                            DialogResult = DialogResult.OK;
-                            return true;
-                        }
-                        else
-                        {
-                            XtraMessageBox.Show(loggedin, "Login Failed - " + url, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        }
+                        Log.Information("Successfully authenticated with API Key to " + url);
+                        EnsureDBExists();
+                        DialogResult = DialogResult.OK;
+                        return true;
                     }
                     else
                     {
-                        XtraMessageBox.Show(data["exception"].ToString(), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        Log.Warning(response.ToString());
+                        string errorMsg = $"Authentication failed. Status: {response.StatusCode}";
+                        string responseContent = await response.Content.ReadAsStringAsync();
+
+                        if (!string.IsNullOrEmpty(responseContent))
+                        {
+                            try
+                            {
+                                JsonNode errorData = JsonSerializer.Deserialize<JsonNode>(responseContent);
+                                if (errorData != null && errorData["exception"] != null)
+                                {
+                                    errorMsg = errorData["exception"].ToString();
+                                }
+                            }
+                            catch
+                            {
+                                errorMsg += $"\n{responseContent}";
+                            }
+                        }
+
+                        XtraMessageBox.Show(errorMsg, "Authentication Failed - " + url, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        Log.Warning("Authentication Failed: " + errorMsg);
+
+                        // Clear the credentials on failure
+                        Program.ApiToken = "";
+                        Program.FrappeURL = "";
+                        Program.FrappeUser = "";
+                        return false;
                     }
                 }
-                else
-                {
-                    Log.Warning("Login Failed. Please try again.");
-                    XtraMessageBox.Show("Login Failed. Please try again.", "Login Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error during authentication");
+                XtraMessageBox.Show(ex.Message, "Authentication Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                // Clear the credentials on error
+                Program.ApiToken = "";
+                Program.FrappeURL = "";
+                Program.FrappeUser = "";
                 return false;
             }
         }
@@ -197,7 +207,7 @@ namespace ERPNext_PowerPlay
 
                     //Save credentials
                     db.Creds.ExecuteDelete();
-                    db.Creds.Add(new Cred() { User = txtUSER.Text, Pass = txtPASS.Text, URL = txtURL.Text });
+                    db.Creds.Add(new Cred() { APIKey = txtAPIKey.Text, Secret = txtAPISecret.Text, URL = txtURL.Text });
                     
                     Settings _autologin = new Settings();
                     if (chkAutoLogin.Checked)
