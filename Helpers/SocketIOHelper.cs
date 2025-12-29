@@ -171,6 +171,11 @@ namespace ERPNext_PowerPlay.Helpers
                     HandleSalesInvoiceSubmit(response);
                 });
 
+                _client.On("sales_invoice_on_submit", response =>
+                {
+                    HandleSalesInvoiceSubmit(response);
+                });
+
                 // Listen for general realtime events
                 _client.On("eval_js", response =>
                 {

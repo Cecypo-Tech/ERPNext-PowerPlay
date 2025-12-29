@@ -273,7 +273,7 @@ namespace ERPNext_PowerPlay
                 using (AppDbContext db = new AppDbContext())
                 {
                     //Get Warehouse List & save to DB
-                    HttpResponseMessage response = await new FrappeAPI().GetAsReponse("/api/resource/User?fields=[\"name\", \"full_name\", \"location\"]", "&filters[[\"User\", \"Enabled\", \"=\", \"1\"]]&limit_page_length=100");
+                    HttpResponseMessage response = await new FrappeAPI().GetAsReponse("/api/resource/User?fields=[\"name\", \"full_name\", \"location\"]", "&filters[[\"User\", \"Enabled\", \"=\", \"1\"]]&limit_page_length=200");
                     response.EnsureSuccessStatusCode();
 
                     string result = await response.Content.ReadAsStringAsync();
