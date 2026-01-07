@@ -15,11 +15,69 @@ namespace ERPNext_PowerPlay.Helpers
 {
     public class FrappeAPI
     {
+        /// <summary>
+        /// Cleans and normalizes a URL to handle common issues like duplicate slashes,
+        /// missing protocol, trailing slashes, etc.
+        /// </summary>
+        private static string CleanUrl(string baseUrl, string endpoint, string filter = "")
+        {
+            // Ensure base URL has protocol
+            if (!baseUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !baseUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                baseUrl = "https://" + baseUrl;
+            }
+
+            // Remove trailing slashes from base URL
+            baseUrl = baseUrl.TrimEnd('/');
+
+            // Remove leading slashes from endpoint
+            endpoint = endpoint.TrimStart('/');
+
+            // Remove trailing slashes from endpoint (unless it's intentional for API)
+            if (!endpoint.EndsWith("/") || endpoint.Count(c => c == '/') > 1)
+                endpoint = endpoint.TrimEnd('/');
+
+            // Build the URL
+            string url = $"{baseUrl}/{endpoint}";
+
+            // Add filter if present
+            if (!string.IsNullOrEmpty(filter))
+            {
+                // Ensure filter starts correctly (with ? or without if endpoint has it)
+                filter = filter.TrimStart('/');
+                if (!filter.StartsWith("?") && !filter.StartsWith("&") && !url.Contains("?"))
+                {
+                    // Filter might be a path segment or query string
+                    if (filter.Contains("="))
+                        url = url + "?" + filter.TrimStart('?').TrimStart('&');
+                    else
+                        url = url + "/" + filter;
+                }
+                else
+                {
+                    url = url + filter;
+                }
+            }
+
+            // Fix any double slashes (except in protocol)
+            url = Regex.Replace(url, @"(?<!:)/{2,}", "/");
+
+            // Fix double question marks or ampersands
+            url = Regex.Replace(url, @"\?{2,}", "?");
+            url = Regex.Replace(url, @"&{2,}", "&");
+            url = Regex.Replace(url, @"\?&", "?");
+            url = Regex.Replace(url, @"&\?", "&");
+
+            return url;
+        }
+
         public async Task<string> GetAsString(string api_endpoint, string api_filter)
         {   //With API Token
             try
             {
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}{2}", Program.FrappeURL, api_endpoint, api_filter));
+                string cleanedUrl = CleanUrl(Program.FrappeURL, api_endpoint, api_filter);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, cleanedUrl);
                 request.Headers.Add("Authorization", $"token {Program.ApiToken}");
 
                 using (var client = new HttpClient() { BaseAddress = new Uri(Program.FrappeURL) })
@@ -43,8 +101,8 @@ namespace ERPNext_PowerPlay.Helpers
         {   //With API Token
             try
             {
-                if (api_endpoint.StartsWith("/")) api_endpoint = api_endpoint.Substring(1, api_endpoint.Length - 1);
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}{2}", Program.FrappeURL, api_endpoint, api_filter));
+                string cleanedUrl = CleanUrl(Program.FrappeURL, api_endpoint, api_filter);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, cleanedUrl);
                 request.Headers.Add("Authorization", $"token {Program.ApiToken}");
 
                 using (var client = new HttpClient() { BaseAddress = new Uri(Program.FrappeURL) })
@@ -100,7 +158,8 @@ namespace ERPNext_PowerPlay.Helpers
 
                 FilterStr = string.Format("api/resource/{0}?fields={1}&filters=[{2}]&limit_page_length={3}", doctype, fields, filters, 2);
                 //Get the docs
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, string.Format("{0}/{1}", Program.FrappeURL, FilterStr));
+                string cleanedUrl = CleanUrl(Program.FrappeURL, FilterStr);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, cleanedUrl);
                 request.Headers.Add("Authorization", $"token {Program.ApiToken}");
 
                 using (var client = new HttpClient() { BaseAddress = new Uri(Program.FrappeURL) })
@@ -232,8 +291,8 @@ namespace ERPNext_PowerPlay.Helpers
         {   //With API Token
             try
             {
-                if (!api_endpoint.StartsWith("/")) api_endpoint = "/" + api_endpoint;
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Put, string.Format("{0}{1}/{2}", Program.FrappeURL, api_endpoint, doc.Name));
+                string cleanedUrl = CleanUrl(Program.FrappeURL, api_endpoint, doc.Name);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Put, cleanedUrl);
                 request.Headers.Add("Authorization", $"token {Program.ApiToken}");
 
                 using (var client = new HttpClient() { BaseAddress = new Uri(Program.FrappeURL) })
