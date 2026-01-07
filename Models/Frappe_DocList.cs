@@ -26,6 +26,7 @@ namespace ERPNext_PowerPlay.Models
             public double Grand_Total { get; set; }
 
             public int custom_print_count { get; set; }
+            public string Set_Warehouse { get; set; }
         }
 
         public class FrappeDocList
