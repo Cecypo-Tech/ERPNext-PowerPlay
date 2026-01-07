@@ -4,6 +4,8 @@ using SocketIOClient;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -15,6 +17,10 @@ namespace ERPNext_PowerPlay.Helpers
         private AppDbContext _db;
         private bool _isConnected = false;
 
+        // Deduplication lock to prevent duplicate prints from timer + Socket.IO
+        private static readonly HashSet<string> _processingDocuments = new HashSet<string>();
+        private static readonly object _lockObject = new object();
+
         public bool IsConnected => _isConnected;
 
         public SocketIOHelper(AppDbContext dbContext)
@@ -24,7 +30,7 @@ namespace ERPNext_PowerPlay.Helpers
 
         /// <summary>
         /// Connect to Frappe's socket.io server and subscribe to Sales Invoice submission events
-        /// Uses API Token for authentication instead of cookies
+        /// Uses cookie-based authentication via session ID
         /// </summary>
         public async Task<bool> ConnectToSocketIO()
         {
@@ -38,11 +44,26 @@ namespace ERPNext_PowerPlay.Helpers
 
                 // Parse the Frappe URL to get the socket.io endpoint
                 var uri = new Uri(Program.FrappeURL);
-                var socketUrl = $"{uri.Scheme}://{uri.Host}:{uri.Port}";
+
+                // Frappe Socket.IO runs on port 9000 by default (configurable via socketio_port in site_config.json)
+                int socketioPort = 9000;
+                var socketUrl = $"{uri.Scheme}://{uri.Host}:{socketioPort}";
 
                 Log.Information("Connecting to Socket.IO at: {0}", socketUrl);
 
-                // Create socket.io client with API Token authentication
+                // Get session cookie for authentication
+                string sessionCookie = await GetSessionCookie();
+
+                if (string.IsNullOrEmpty(sessionCookie))
+                {
+                    Log.Warning("Could not obtain session cookie for Socket.IO auth - connection may fail");
+                }
+                else
+                {
+                    Log.Debug("Obtained session cookie for Socket.IO authentication");
+                }
+
+                // Create socket.io client with cookie-based authentication
                 _client = new SocketIOClient.SocketIO(socketUrl, new SocketIOOptions
                 {
                     Transport = SocketIOClient.Transport.TransportProtocol.WebSocket,
@@ -53,7 +74,7 @@ namespace ERPNext_PowerPlay.Helpers
                     ConnectionTimeout = TimeSpan.FromSeconds(30),
                     Query = new Dictionary<string, string>
                     {
-                        // Add any required query parameters for Frappe authentication
+                        { "sid", sessionCookie ?? "" }
                     },
                     ExtraHeaders = GetAuthenticationHeaders()
                 });
@@ -72,6 +93,46 @@ namespace ERPNext_PowerPlay.Helpers
                 Log.Error(ex, "Error connecting to Socket.IO: {0}", ex.Message);
                 _isConnected = false;
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Get session cookie from Frappe by making a REST API call
+        /// </summary>
+        private async Task<string> GetSessionCookie()
+        {
+            try
+            {
+                var handler = new HttpClientHandler
+                {
+                    CookieContainer = new CookieContainer(),
+                    UseCookies = true
+                };
+
+                using var client = new HttpClient(handler);
+
+                var request = new HttpRequestMessage(HttpMethod.Get,
+                    $"{Program.FrappeURL}/api/method/frappe.auth.get_logged_user");
+                request.Headers.Add("Authorization", $"token {Program.ApiToken}");
+
+                var response = await client.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var cookies = handler.CookieContainer.GetCookies(new Uri(Program.FrappeURL));
+                    var sidCookie = cookies["sid"];
+                    if (sidCookie != null)
+                    {
+                        return sidCookie.Value;
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Could not obtain session cookie: {0}", ex.Message);
+                return null;
             }
         }
 
@@ -152,40 +213,24 @@ namespace ERPNext_PowerPlay.Helpers
         {
             try
             {
-                // Subscribe to Sales Invoice submission event
-                // Frappe typically emits events in the format: "doc_update" or specific doctype events
-                // Event names may vary based on Frappe version - common patterns:
-                // - "doc_update" (general document update)
-                // - "Sales Invoice:on_submit" (specific to Sales Invoice submission)
-                // - "eval_js" (for realtime events)
-
-                // Listen for generic document updates
-                _client.On("doc_update", response =>
+                // Debug: Log all events received (useful for troubleshooting)
+                _client.OnAny((eventName, response) =>
                 {
-                    HandleDocumentUpdate(response);
+                    Log.Debug("Socket.IO received event: {0}, data: {1}", eventName, response.ToString());
                 });
 
-                // Listen for Sales Invoice specific events
-                _client.On("Sales Invoice:on_submit", response =>
+                // Listen for our custom PowerPlay print event
+                // This event is published by the Server Script in ERPNext when Sales Invoice is submitted
+                _client.On("powerplay_print_invoice", response =>
                 {
-                    HandleSalesInvoiceSubmit(response);
+                    HandlePrintInvoiceEvent(response);
                 });
 
-                _client.On("sales_invoice_on_submit", response =>
-                {
-                    HandleSalesInvoiceSubmit(response);
-                });
+                // Subscribe to the event channel
+                // Frappe uses "task_subscribe" for custom realtime events
+                await _client.EmitAsync("task_subscribe", "powerplay_print_invoice");
 
-                // Listen for general realtime events
-                _client.On("eval_js", response =>
-                {
-                    HandleRealtimeEvent(response);
-                });
-
-                // Emit subscription to specific document type
-                await _client.EmitAsync("doctype_subscribe", "Sales Invoice");
-
-                Log.Information("Subscribed to Sales Invoice submission events");
+                Log.Information("Subscribed to powerplay_print_invoice events");
             }
             catch (Exception ex)
             {
@@ -194,73 +239,72 @@ namespace ERPNext_PowerPlay.Helpers
         }
 
         /// <summary>
-        /// Handle generic document update events
+        /// Handle the custom print invoice event from ERPNext
         /// </summary>
-        private void HandleDocumentUpdate(SocketIOResponse response)
+        private void HandlePrintInvoiceEvent(SocketIOResponse response)
         {
             try
             {
                 var data = response.GetValue<JsonElement>();
-                Log.Debug("Document update received: {0}", data.ToString());
+                Log.Information("Received powerplay_print_invoice event: {0}", data.ToString());
 
-                // Check if it's a Sales Invoice
-                if (data.TryGetProperty("doctype", out var doctype))
+                // Extract document name
+                if (data.TryGetProperty("name", out var nameElement))
                 {
-                    if (doctype.GetString() == "Sales Invoice")
+                    string docName = nameElement.GetString();
+
+                    // Check custom_print_count to avoid reprinting already printed documents
+                    if (data.TryGetProperty("custom_print_count", out var printCountElement))
                     {
-                        if (data.TryGetProperty("docstatus", out var docstatus) && docstatus.GetInt32() == 1)
+                        int printCount = printCountElement.GetInt32();
+                        if (printCount > 0)
                         {
-                            // Document is submitted (docstatus = 1)
-                            TriggerPrintJob(data);
+                            Log.Information("Document {0} already printed (count={1}), skipping", docName, printCount);
+                            return;
                         }
                     }
+
+                    TriggerPrintJob(data);
+                }
+                else
+                {
+                    Log.Warning("Print invoice event missing 'name' field: {0}", data.ToString());
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error handling document update: {0}", ex.Message);
+                Log.Error(ex, "Error handling print invoice event: {0}", ex.Message);
             }
         }
 
         /// <summary>
-        /// Handle Sales Invoice submission events
+        /// Try to acquire a lock for processing a document (prevents duplicate prints)
         /// </summary>
-        private void HandleSalesInvoiceSubmit(SocketIOResponse response)
+        private bool TryAcquirePrintLock(string docName)
         {
-            try
+            lock (_lockObject)
             {
-                var data = response.GetValue<JsonElement>();
-                Log.Information("Sales Invoice submitted via Socket.IO: {0}", data.ToString());
-                TriggerPrintJob(data);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error handling Sales Invoice submit: {0}", ex.Message);
+                if (_processingDocuments.Contains(docName))
+                    return false;
+                _processingDocuments.Add(docName);
+                return true;
             }
         }
 
         /// <summary>
-        /// Handle realtime events
+        /// Release the processing lock for a document
         /// </summary>
-        private void HandleRealtimeEvent(SocketIOResponse response)
+        private void ReleasePrintLock(string docName)
         {
-            try
+            lock (_lockObject)
             {
-                var data = response.GetValue<JsonElement>();
-                Log.Debug("Realtime event received: {0}", data.ToString());
-
-                // Parse the event data to check if it's a Sales Invoice submission
-                // Frappe realtime events may contain JavaScript code to execute
-                // We need to parse and check for Sales Invoice related events
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error handling realtime event: {0}", ex.Message);
+                _processingDocuments.Remove(docName);
             }
         }
 
         /// <summary>
         /// Trigger a print job for the document received via socket.io
+        /// Uses deduplication lock to prevent duplicate prints from timer + Socket.IO
         /// </summary>
         private void TriggerPrintJob(JsonElement documentData)
         {
@@ -274,12 +318,27 @@ namespace ERPNext_PowerPlay.Helpers
                 }
 
                 string docName = nameElement.GetString();
-                Log.Information("Triggering print job for Sales Invoice: {0}", docName);
+
+                // Prevent duplicate processing
+                if (!TryAcquirePrintLock(docName))
+                {
+                    Log.Information("Document {0} already being processed by another thread, skipping", docName);
+                    return;
+                }
+
+                Log.Information("Triggering print job for Sales Invoice: {0} via Socket.IO", docName);
 
                 // Run print job in a separate STA thread (required for COM/printing operations)
                 System.Threading.Thread thread = new System.Threading.Thread((System.Threading.ThreadStart)(() =>
                 {
-                    RunPrintJobForDocument(docName);
+                    try
+                    {
+                        RunPrintJobForDocument(docName);
+                    }
+                    finally
+                    {
+                        ReleasePrintLock(docName);
+                    }
                 }));
 
                 thread.SetApartmentState(System.Threading.ApartmentState.STA);

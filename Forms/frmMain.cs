@@ -31,6 +31,7 @@ namespace ERPNext_PowerPlay
         private System.Timers.Timer _timer = new System.Timers.Timer();
         private SocketIOHelper _socketIOHelper;
         bool _LoggedIn = false;
+        bool _useSocketIO = true;
         public frmMain()
         {
             InitializeComponent();
@@ -70,7 +71,7 @@ namespace ERPNext_PowerPlay
                                 btnLogin.Enabled = false;
                                 btnLogout.Enabled = true;
                                 _LoggedIn = true;
-                                await InitializeSocketIO();
+                                
                             }
                         }
 
@@ -100,6 +101,17 @@ namespace ERPNext_PowerPlay
                                         }
                                     }
                                     break;
+                                case "UseSocketIO":
+                                    _useSocketIO = item.Enabled;
+                                    if (_useSocketIO)
+                                    {
+                                        await InitializeSocketIO();
+                                    }
+                                    else
+                                    {
+                                        Log.Information("Socket.IO disabled, using timer-based polling");
+                                    }
+                                    break;
                             }
                         }
                     }
@@ -119,7 +131,23 @@ namespace ERPNext_PowerPlay
                 btnLogin.Enabled = false;
                 btnLogout.Enabled = true;
                 _LoggedIn = true;
-                await InitializeSocketIO();
+
+                // Reload settings to get the latest UseSocketIO value
+                using (AppDbContext db = new AppDbContext())
+                {
+                    db.Settings.Load();
+                    _settings = db.Settings.Local.ToBindingList().ToList();
+                    _useSocketIO = _settings.Where(x => x.Name == "UseSocketIO").FirstOrDefault()?.Enabled ?? true;
+                }
+
+                if (_useSocketIO)
+                {
+                    await InitializeSocketIO();
+                }
+                else
+                {
+                    Log.Information("Socket.IO disabled, using timer-based polling");
+                }
             }
         }
 

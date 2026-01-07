@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -54,6 +55,7 @@ namespace ERPNext_PowerPlay
                         chkAutoLogin.Checked = s.Where(x => x.Name == "AutoLogin").FirstOrDefault()?.Enabled ?? false;
                         chkAutoStartPrinting.Checked = s.Where(x => x.Name == "AutoStartPrinting").FirstOrDefault()?.Enabled ?? false;
                         chkLock.Checked = s.Where(x => x.Name == "Lock").FirstOrDefault()?.Enabled ?? false;
+                        chkUseSocketIO.Checked = s.Where(x => x.Name == "UseSocketIO").FirstOrDefault()?.Enabled ?? true;
                         spin_TimerValue.Value = s.Where(x => x.Name == "Timer").FirstOrDefault()?.Value ?? 0;
                     }
 
@@ -120,7 +122,7 @@ namespace ERPNext_PowerPlay
 
                     if (response.IsSuccessStatusCode)
                     {
-                        Log.Information("Successfully authenticated with API Key to " + url);
+                        Log.Information("Successfully authenticated to " + url);
                         EnsureDBExists();
                         DialogResult = DialogResult.OK;
                         return true;
@@ -176,19 +178,76 @@ namespace ERPNext_PowerPlay
             {
                 using (AppDbContext db = new AppDbContext())
                 {
-                    bool created = db.Database.EnsureCreated();
-                    if (created)
+                    // Check if database exists but was created without migrations (EnsureCreated)
+                    bool dbExists = File.Exists(db.DbPath);
+
+                    if (dbExists)
                     {
-                        Log.Information("Database Created!");
+                        // Create migrations history table and baseline existing migrations
+                        db.Database.ExecuteSqlRaw(@"
+                            CREATE TABLE IF NOT EXISTS ""__EFMigrationsHistory"" (
+                                ""MigrationId"" TEXT NOT NULL PRIMARY KEY,
+                                ""ProductVersion"" TEXT NOT NULL
+                            )");
+
+                        db.Database.ExecuteSqlRaw(@"
+                            INSERT OR IGNORE INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
+                            VALUES ('20250424124228_InitialCreate', '8.0.0')");
+
+                        // Add any missing columns that may have been added after InitialCreate
+                        // This handles databases created with EnsureCreated that have the columns already
+                        AddColumnIfNotExists(db, "Settings", "StringValue", "TEXT NOT NULL DEFAULT ''");
+                        AddColumnIfNotExists(db, "Settings", "Value", "INTEGER NOT NULL DEFAULT 0");
+                        AddColumnIfNotExists(db, "JobHistory", "Set_Warehouse", "TEXT NOT NULL DEFAULT ''");
+
+                        // Mark Set_Warehouse migration as applied since we handled columns manually
+                        db.Database.ExecuteSqlRaw(@"
+                            INSERT OR IGNORE INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
+                            VALUES ('20260107124935_Set_Warehouse', '8.0.0')");
+
+                        Log.Information("Database schema updated successfully");
+                    }
+                    else
+                    {
+                        // New database - run all migrations normally
+                        db.Database.Migrate();
+                        Log.Information("Database created with migrations");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Error while creating/checking database");
+                Log.Error(ex, "Error while applying database migrations");
                 XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
 
+        private void AddColumnIfNotExists(AppDbContext db, string table, string column, string type)
+        {
+            try
+            {
+                // Check if column exists
+                var conn = db.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open)
+                    conn.Open();
+
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name='{column}'";
+                    var result = Convert.ToInt32(cmd.ExecuteScalar());
+
+                    if (result == 0)
+                    {
+                        cmd.CommandText = $@"ALTER TABLE ""{table}"" ADD COLUMN ""{column}"" {type}";
+                        cmd.ExecuteNonQuery();
+                        Log.Information("Added column {0} to table {1}", column, table);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Could not add column {0} to {1} - may already exist", column, table);
+            }
         }
 
         private async void SaveSettings()
@@ -201,6 +260,7 @@ namespace ERPNext_PowerPlay
                     [
                         chkAutoStartPrinting.Checked ? new Settings() { Name = "AutoStartPrinting", Enabled = true } : new Settings() { Name = "AutoStartPrinting", Enabled = false },
                         chkLock.Checked ? new Settings() { Name = "Lock", Enabled = true } : new Settings() { Name = "Lock", Enabled = false },
+                        chkUseSocketIO.Checked ? new Settings() { Name = "UseSocketIO", Enabled = true } : new Settings() { Name = "UseSocketIO", Enabled = false },
                         spin_TimerValue.Value > 0 ? new Settings() { Name = "Timer", Enabled = true, Value = Convert.ToInt32(spin_TimerValue.Text) } : new Settings() { Name = "Timer", Enabled = false, Value = 0 },
                         //txtExportConnString.Text.Length > 0 ? new Settings() { Name = "MSSQLConnStr", Enabled = true, StringValue = txtExportConnString.Text.Trim() } : new Settings() { Name = "MSSQLConnStr", Enabled = false, Value = 0 },
                     ];

@@ -155,6 +155,8 @@ namespace ERPNext_PowerPlay.Helpers
                                 //owner
                                 JsonElement jsonElementOwner = JsonHelper.GetJsonElement(jE, "owner");
 
+                                //Warehouse (set_warehouse field)
+                                JsonElement jsonElementWarehouse = JsonHelper.GetJsonElement(jE, "set_warehouse");
 
                                 //Set fields for object
                                 var title = JsonHelper.GetJsonElementValue(jsonElementTitle);
@@ -164,7 +166,8 @@ namespace ERPNext_PowerPlay.Helpers
                                 var grandTot = JsonHelper.GetJsonElementValue(jsonElementTot);
                                 var printCount = JsonHelper.GetJsonElementValue(jsonElementPrintCount);
                                 var status = JsonHelper.GetJsonElementValue(jsonElementStatus);
-
+                                var setWarehouse = JsonHelper.GetJsonElementValue(jsonElementWarehouse);
+                                
                                 docList.data.Add(new Frappe_DocList.data()
                                 {
                                     Date = Convert.ToDateTime(originalSrcString),
@@ -174,7 +177,8 @@ namespace ERPNext_PowerPlay.Helpers
                                     Name = docname.ToString(),
                                     Status = status.ToString(),
                                     Title = title.ToString(),
-                                    Owner = owner.ToString()
+                                    Owner = owner.ToString(),
+                                    Set_Warehouse = setWarehouse?.ToString() ?? ""
                                 });
                             }
                             catch (Exception exJsonElement)
@@ -183,6 +187,20 @@ namespace ERPNext_PowerPlay.Helpers
                             }
                         }
                     }
+
+                    // Apply warehouse filter if set
+                    if (!string.IsNullOrEmpty(ps.WarehouseFilter))
+                    {
+                        var warehouseList = ps.WarehouseFilter.Split(',').Select(w => w.Trim()).ToList();
+                        var filteredDocs = docList.data.Where(d =>
+                            !string.IsNullOrEmpty(d.Set_Warehouse) &&
+                            warehouseList.Contains(d.Set_Warehouse)).ToList();
+
+                        Log.Information("Warehouse filter applied: {0} documents matched out of {1}",
+                            filteredDocs.Count, docList.data.Count);
+                        docList.data = filteredDocs;
+                    }
+
                     return docList;
                 }
             }
@@ -193,7 +211,24 @@ namespace ERPNext_PowerPlay.Helpers
             }
         }
 
-        public async Task<bool> UpdateCount(string api_endpoint, Frappe_DocList.data doc)
+        public async Task<string> GetLinkedPaymentEntries(string doctype, string docname)
+    {
+        // Query Payment Entry Reference where reference_doctype and reference_name match
+        string filter = string.Format(
+            "api/resource/Payment Entry Reference?fields=[\"parent\",\"allocated_amount\"]" +
+            "&filters=[[\"Payment Entry Reference\",\"reference_doctype\",\"=\",\"{0}\"]," +
+            "[\"Payment Entry Reference\",\"reference_name\",\"=\",\"{1}\"]]",
+            doctype, docname);
+        return await GetAsString(filter, "");
+    }
+
+    public async Task<string> GetPaymentEntryDetails(string paymentEntryName)
+    {
+        // Get Payment Entry details
+        return await GetAsString("api/resource/Payment Entry/", paymentEntryName);
+    }
+
+    public async Task<bool> UpdateCount(string api_endpoint, Frappe_DocList.data doc)
         {   //With API Token
             try
             {
