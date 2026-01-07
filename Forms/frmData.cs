@@ -21,6 +21,7 @@ using System.Data;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Controls;
+using System.Xml.Linq;
 using GridView = DevExpress.XtraGrid.Views.Grid.GridView;
 using Image = System.Drawing.Image;
 
@@ -92,6 +93,7 @@ namespace ERPNext_PowerPlay.Forms
                             currentGrid = gc;
                             currentView = (GridView)gc.MainView;
                             SetupGrid();
+                            FormatNumericFields_Grid(currentView);
                             currentView.ViewCaption = string.Format("{0} - {1} to {2}", rpt.ReportName, dtFrom.DateTime.Date.ToString("yy/MM/dd"), dtTo.DateTime.Date.ToString("yy/MM/dd"));
                         }
                     }
@@ -113,6 +115,7 @@ namespace ERPNext_PowerPlay.Forms
                                 pv.Fields.Add(field);
                             }
                             pv.Tag = string.Format("{0} - {1} to {2}", rpt.ReportName, dtFrom.DateTime.Date.ToString("yy/MM/dd"), dtTo.DateTime.Date.ToString("yy/MM/dd"));
+                            FormatNumericFields_Pivot(pv);
                         }
 
                     }
@@ -179,12 +182,37 @@ namespace ERPNext_PowerPlay.Forms
             gridControl.OptionsLayout.Columns.StoreAppearance = true;
             gridControl.OptionsLayout.Columns.StoreLayout = true;
             gridControl.OptionsLayout.Columns.AddNewColumns = true;
-            gridControl.OptionsLayout.Columns.RemoveOldColumns = true;
+            gridControl.OptionsLayout.Columns.RemoveOldColumns = false;
+
+            // Add popup menu for layout options
+            gridControl.PopupMenuShowing += PivotGrid_PopupMenuShowing;
 
             tabPage.AddControl(gridControl);
             xtraTabControl1.TabPages.Add(tabPage);
             xtraTabControl1.SelectedTabPage = tabPage;
+
+            // Auto-load layout if exists
+            currentPivot = gridControl;
+            LoadLayout_Pivot(gridControl, RptName);
+
             return gridControl;
+        }
+
+        private void PivotGrid_PopupMenuShowing(object sender, DevExpress.XtraPivotGrid.PopupMenuShowingEventArgs e)
+        {
+            PivotGridControl pv = (PivotGridControl)sender;
+            if (pv == null) return;
+
+            currentPivot = pv;
+
+            // Add layout menu items
+            DXMenuItem saveLayout = new DXMenuItem("Save Layout", new EventHandler(SaveLayout_Pivot));
+            saveLayout.Tag = pv;
+            e.Menu.Items.Add(saveLayout);
+
+            DXMenuItem resetLayout = new DXMenuItem("Reset Layout", new EventHandler(ResetLayout_Pivot));
+            resetLayout.Tag = pv;
+            e.Menu.Items.Add(resetLayout);
         }
 
 
@@ -278,19 +306,37 @@ namespace ERPNext_PowerPlay.Forms
             }
         }
 
-        private void XtraGrid_SaveLayout(object? sender, EventArgs e)
+        #region Layout Management
+
+        private string LayoutsFolder => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "ERPNext_PowerPlay", "layouts");
+
+        private string GetLayoutPath(string name, bool isPivot)
+        {
+            string prefix = isPivot ? "pivot_" : "grid_";
+            return Path.Combine(LayoutsFolder, prefix + MakeValidFileName(name) + ".xml");
+        }
+
+        private void EnsureLayoutsFolderExists()
+        {
+            if (!Directory.Exists(LayoutsFolder))
+                Directory.CreateDirectory(LayoutsFolder);
+        }
+
+        private void SaveLayout_Grid(object? sender, EventArgs e)
         {
             try
             {
                 DXMenuItem item = sender as DXMenuItem;
                 GridView gv = item.Tag as GridView;
+                if (gv == null) return;
 
-                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "ERPNext_PowerPlay",
-                    MakeValidFileName(currentGrid.MainView.ViewCaption) + ".xml");
-                if (!Directory.Exists(Path.GetDirectoryName(path)))
-                    Directory.CreateDirectory(Path.GetDirectoryName(path));
+                EnsureLayoutsFolderExists();
+                string path = GetLayoutPath(gv.ViewCaption, false);
                 gv.SaveLayoutToXml(path);
+                Log.Information("Grid layout saved: {0}", path);
+                XtraMessageBox.Show("Layout saved successfully", "Layout", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
@@ -298,16 +344,21 @@ namespace ERPNext_PowerPlay.Forms
                 XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-        private void XtraGrid_LoadLayout()
+
+        private void SaveLayout_Pivot(object? sender, EventArgs e)
         {
             try
             {
-                if (currentGrid == null) return;
-                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "ERPNext_PowerPlay",
-                    MakeValidFileName(currentView.ViewCaption) + ".xml");
-                if (File.Exists(path))
-                    currentView.RestoreLayoutFromXml(path);
+                DXMenuItem item = sender as DXMenuItem;
+                PivotGridControl pv = item.Tag as PivotGridControl;
+                if (pv == null) return;
+
+                EnsureLayoutsFolderExists();
+                string name = pv.Tag?.ToString() ?? "Pivot";
+                string path = GetLayoutPath(name, true);
+                pv.SaveLayoutToXml(path);
+                Log.Information("Pivot layout saved: {0}", path);
+                XtraMessageBox.Show("Layout saved successfully", "Layout", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
@@ -315,6 +366,284 @@ namespace ERPNext_PowerPlay.Forms
                 XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        private void LoadLayout_Grid(GridView gv, string layoutName)
+        {
+            try
+            {
+                if (gv == null) return;
+                string path = GetLayoutPath(layoutName, false);
+                if (File.Exists(path))
+                {
+                    // Handle layout upgrade by setting options before restore
+                    gv.OptionsLayout.Columns.AddNewColumns = true;
+                    gv.OptionsLayout.Columns.RemoveOldColumns = false;
+                    gv.RestoreLayoutFromXml(path, DevExpress.Utils.OptionsLayoutBase.FullLayout);
+                    Log.Information("Grid layout loaded: {0}", path);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Could not load grid layout, attempting upgrade: {0}", ex.Message);
+                TryUpgradeLayout_Grid(gv, layoutName);
+            }
+        }
+
+        private void LoadLayout_Pivot(PivotGridControl pv, string layoutName)
+        {
+            try
+            {
+                if (pv == null) return;
+                string path = GetLayoutPath(layoutName, true);
+                if (File.Exists(path))
+                {
+                    // Handle layout upgrade by setting options before restore
+                    pv.OptionsLayout.Columns.AddNewColumns = true;
+                    pv.OptionsLayout.Columns.RemoveOldColumns = false;
+                    pv.RestoreLayoutFromXml(path, DevExpress.Utils.OptionsLayoutBase.FullLayout);
+                    Log.Information("Pivot layout loaded: {0}", path);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Could not load pivot layout, attempting upgrade: {0}", ex.Message);
+                TryUpgradeLayout_Pivot(pv, layoutName);
+            }
+        }
+
+        private void TryUpgradeLayout_Grid(GridView gv, string layoutName)
+        {
+            try
+            {
+                string path = GetLayoutPath(layoutName, false);
+                if (!File.Exists(path)) return;
+
+                // Backup old layout
+                string backupPath = path + ".bak";
+                File.Copy(path, backupPath, true);
+
+                // Try loading with relaxed options
+                gv.OptionsLayout.Columns.AddNewColumns = true;
+                gv.OptionsLayout.Columns.RemoveOldColumns = true;
+                gv.OptionsLayout.StoreAllOptions = false;
+
+                try
+                {
+                    gv.RestoreLayoutFromXml(path);
+                    // Save upgraded layout
+                    gv.SaveLayoutToXml(path);
+                    Log.Information("Grid layout upgraded successfully: {0}", path);
+                }
+                catch
+                {
+                    // Layout is too incompatible, delete it
+                    File.Delete(path);
+                    Log.Warning("Grid layout was incompatible and has been reset: {0}", path);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to upgrade grid layout");
+            }
+        }
+
+        private void TryUpgradeLayout_Pivot(PivotGridControl pv, string layoutName)
+        {
+            try
+            {
+                string path = GetLayoutPath(layoutName, true);
+                if (!File.Exists(path)) return;
+
+                // Backup old layout
+                string backupPath = path + ".bak";
+                File.Copy(path, backupPath, true);
+
+                // Try loading with relaxed options
+                pv.OptionsLayout.Columns.AddNewColumns = true;
+                pv.OptionsLayout.Columns.RemoveOldColumns = true;
+                pv.OptionsLayout.StoreAllOptions = false;
+
+                try
+                {
+                    pv.RestoreLayoutFromXml(path);
+                    // Save upgraded layout
+                    pv.SaveLayoutToXml(path);
+                    Log.Information("Pivot layout upgraded successfully: {0}", path);
+                }
+                catch
+                {
+                    // Layout is too incompatible, delete it
+                    File.Delete(path);
+                    Log.Warning("Pivot layout was incompatible and has been reset: {0}", path);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to upgrade pivot layout");
+            }
+        }
+
+        private void ResetLayout_Grid(object? sender, EventArgs e)
+        {
+            try
+            {
+                DXMenuItem item = sender as DXMenuItem;
+                GridView gv = item.Tag as GridView;
+                if (gv == null) return;
+
+                string path = GetLayoutPath(gv.ViewCaption, false);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                    Log.Information("Grid layout deleted: {0}", path);
+                }
+
+                // Reset to default
+                gv.PopulateColumns();
+                XtraMessageBox.Show("Layout reset to default", "Layout", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, ex.Message);
+                XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ResetLayout_Pivot(object? sender, EventArgs e)
+        {
+            try
+            {
+                DXMenuItem item = sender as DXMenuItem;
+                PivotGridControl pv = item.Tag as PivotGridControl;
+                if (pv == null) return;
+
+                string name = pv.Tag?.ToString() ?? "Pivot";
+                string path = GetLayoutPath(name, true);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                    Log.Information("Pivot layout deleted: {0}", path);
+                }
+
+                // Reset fields to filter area
+                foreach (PivotGridField field in pv.Fields)
+                    field.Area = PivotArea.FilterArea;
+
+                XtraMessageBox.Show("Layout reset to default", "Layout", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, ex.Message);
+                XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Legacy method for compatibility
+        private void XtraGrid_LoadLayout()
+        {
+            if (currentView != null)
+                LoadLayout_Grid(currentView, currentView.ViewCaption);
+        }
+
+        #endregion
+
+        #region Numeric Formatting
+
+        /// <summary>
+        /// Formats all numeric columns in a GridView with #,##0.00 format
+        /// </summary>
+        private void FormatNumericFields_Grid(GridView gv)
+        {
+            if (gv == null) return;
+
+            try
+            {
+                foreach (GridColumn col in gv.Columns)
+                {
+                    // Check if column type is numeric
+                    if (col.ColumnType == typeof(double) ||
+                        col.ColumnType == typeof(decimal) ||
+                        col.ColumnType == typeof(float) ||
+                        col.ColumnType == typeof(int) ||
+                        col.ColumnType == typeof(long) ||
+                        IsNumericFieldName(col.FieldName))
+                    {
+                        col.DisplayFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                        col.DisplayFormat.FormatString = "#,##0.00";
+                        col.GroupFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                        col.GroupFormat.FormatString = "#,##0.00";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error formatting numeric fields in grid");
+            }
+        }
+
+        /// <summary>
+        /// Formats all numeric fields in a PivotGridControl with #,##0.00 format
+        /// </summary>
+        private void FormatNumericFields_Pivot(PivotGridControl pv)
+        {
+            if (pv == null) return;
+
+            try
+            {
+                foreach (PivotGridField field in pv.Fields)
+                {
+                    // Check if field is likely numeric based on data type or name
+                    if (field.DataType == typeof(double) ||
+                        field.DataType == typeof(decimal) ||
+                        field.DataType == typeof(float) ||
+                        field.DataType == typeof(int) ||
+                        field.DataType == typeof(long) ||
+                        IsNumericFieldName(field.FieldName))
+                    {
+                        field.CellFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                        field.CellFormat.FormatString = "#,##0.00";
+                        field.ValueFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                        field.ValueFormat.FormatString = "#,##0.00";
+                        field.GrandTotalCellFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                        field.GrandTotalCellFormat.FormatString = "#,##0.00";
+                        field.TotalCellFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                        field.TotalCellFormat.FormatString = "#,##0.00";
+                        field.TotalValueFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                        field.TotalValueFormat.FormatString = "#,##0.00";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error formatting numeric fields in pivot");
+            }
+        }
+
+        /// <summary>
+        /// Checks if a field name suggests it contains numeric data
+        /// </summary>
+        private bool IsNumericFieldName(string fieldName)
+        {
+            if (string.IsNullOrEmpty(fieldName)) return false;
+
+            string upper = fieldName.ToUpper();
+            string[] numericKeywords = {
+                "TOTAL", "AMOUNT", "GROSS", "TAX", "VAT", "PAID", "VALUE",
+                "PRICE", "COST", "RATE", "QTY", "QUANTITY", "SUM", "COUNT",
+                "BALANCE", "CREDIT", "DEBIT", "DISCOUNT", "PERCENT", "PERCENTAGE",
+                "WEIGHT", "VOLUME", "SIZE", "NUMBER", "NUM", "CHARGE", "FEE"
+            };
+
+            foreach (string keyword in numericKeywords)
+            {
+                if (upper.Contains(keyword))
+                    return true;
+            }
+
+            return false;
+        }
+
+        #endregion
 
         private static string MakeValidFileName(string name)
         {
@@ -414,15 +743,23 @@ namespace ERPNext_PowerPlay.Forms
                 sItem.Items.Add(new DXMenuItem("Export to csv", new EventHandler(ExportGrid), image: imageCollection1.Images[4]));
                 sItem.Items.Add(new DXMenuItem("Export to pdf", new EventHandler(ExportGrid), image: imageCollection1.Images[5]));
                 menu2.Items.Add(sItem);
-                DXMenuItem saver = new DXMenuItem("Save layout", new EventHandler(XtraGrid_SaveLayout), image: imageCollection1.Images[3]);
-                saver.Tag = gv;
-                menu2.Items.Add(saver);
-                menu2.ShowPopup(grid, e.HitInfo.HitPoint);
 
+                // Layout submenu
+                DXSubMenuItem layoutItem = new DXSubMenuItem("Layout");
+                DXMenuItem saveLayout = new DXMenuItem("Save Layout", new EventHandler(SaveLayout_Grid));
+                saveLayout.Tag = gv;
+                layoutItem.Items.Add(saveLayout);
+                DXMenuItem resetLayout = new DXMenuItem("Reset Layout", new EventHandler(ResetLayout_Grid));
+                resetLayout.Tag = gv;
+                layoutItem.Items.Add(resetLayout);
+                menu2.Items.Add(layoutItem);
+
+                menu2.ShowPopup(grid, e.HitInfo.HitPoint);
             }
         }
         GridControl currentGrid;
         GridView currentView;
+        PivotGridControl currentPivot;
         private void ExportGrid(object? sender, EventArgs e)
         {
             try
