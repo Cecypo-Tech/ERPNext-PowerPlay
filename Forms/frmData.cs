@@ -205,8 +205,18 @@ namespace ERPNext_PowerPlay.Forms
 
             currentPivot = pv;
 
-            // Add layout menu items
+            // Add print menu items
+            DXMenuItem printPreview = new DXMenuItem("Print Preview", new EventHandler(PrintPreview_Pivot));
+            printPreview.Tag = pv;
+            e.Menu.Items.Add(printPreview);
+
+            DXMenuItem printDirect = new DXMenuItem("Print", new EventHandler(PrintDirect_Pivot));
+            printDirect.Tag = pv;
+            e.Menu.Items.Add(printDirect);
+
+            // Add layout menu items with separator
             DXMenuItem saveLayout = new DXMenuItem("Save Layout", new EventHandler(SaveLayout_Pivot));
+            saveLayout.BeginGroup = true;
             saveLayout.Tag = pv;
             e.Menu.Items.Add(saveLayout);
 
@@ -547,6 +557,128 @@ namespace ERPNext_PowerPlay.Forms
 
         #endregion
 
+        #region Printing
+
+        private void PrintPreview_Grid(object? sender, EventArgs e)
+        {
+            try
+            {
+                DXMenuItem item = sender as DXMenuItem;
+                GridView gv = item?.Tag as GridView;
+                if (gv == null) gv = currentView;
+                if (gv == null) return;
+
+                PrintableComponentLink link = new PrintableComponentLink(new PrintingSystem());
+                link.Component = gv.GridControl;
+
+                // Set narrow margins (25 = ~0.25 inch)
+                link.Margins = new System.Drawing.Printing.Margins(25, 25, 25, 25);
+
+                // Header and footer
+                PageHeaderFooter phf = link.PageHeaderFooter as PageHeaderFooter;
+                phf.Header.Content.Clear();
+                phf.Header.Content.AddRange(new string[] { "", gv.ViewCaption ?? "Grid Report", "" });
+                phf.Header.LineAlignment = BrickAlignment.Center;
+                phf.Footer.Content.Clear();
+                phf.Footer.Content.AddRange(new string[] { "[Page # of Pages #]", "", "[Date Printed]" });
+                phf.Footer.LineAlignment = BrickAlignment.Near;
+
+                link.CreateDocument();
+                link.ShowPreviewDialog();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, ex.Message);
+                XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void PrintDirect_Grid(object? sender, EventArgs e)
+        {
+            try
+            {
+                DXMenuItem item = sender as DXMenuItem;
+                GridView gv = item?.Tag as GridView;
+                if (gv == null) gv = currentView;
+                if (gv == null) return;
+
+                PrintableComponentLink link = new PrintableComponentLink(new PrintingSystem());
+                link.Component = gv.GridControl;
+
+                // Set narrow margins
+                link.Margins = new System.Drawing.Printing.Margins(25, 25, 25, 25);
+
+                link.CreateDocument();
+                link.Print();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, ex.Message);
+                XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void PrintPreview_Pivot(object? sender, EventArgs e)
+        {
+            try
+            {
+                DXMenuItem item = sender as DXMenuItem;
+                PivotGridControl pv = item?.Tag as PivotGridControl;
+                if (pv == null) pv = currentPivot;
+                if (pv == null) return;
+
+                PrintableComponentLink link = new PrintableComponentLink(new PrintingSystem());
+                link.Component = pv;
+
+                // Set narrow margins (25 = ~0.25 inch)
+                link.Margins = new System.Drawing.Printing.Margins(25, 25, 25, 25);
+
+                // Header and footer
+                PageHeaderFooter phf = link.PageHeaderFooter as PageHeaderFooter;
+                phf.Header.Content.Clear();
+                phf.Header.Content.AddRange(new string[] { "", pv.Tag?.ToString() ?? "Pivot Report", "" });
+                phf.Header.LineAlignment = BrickAlignment.Center;
+                phf.Footer.Content.Clear();
+                phf.Footer.Content.AddRange(new string[] { "[Page # of Pages #]", "", "[Date Printed]" });
+                phf.Footer.LineAlignment = BrickAlignment.Near;
+
+                link.CreateDocument();
+                link.ShowPreviewDialog();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, ex.Message);
+                XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void PrintDirect_Pivot(object? sender, EventArgs e)
+        {
+            try
+            {
+                DXMenuItem item = sender as DXMenuItem;
+                PivotGridControl pv = item?.Tag as PivotGridControl;
+                if (pv == null) pv = currentPivot;
+                if (pv == null) return;
+
+                PrintableComponentLink link = new PrintableComponentLink(new PrintingSystem());
+                link.Component = pv;
+
+                // Set narrow margins
+                link.Margins = new System.Drawing.Printing.Margins(25, 25, 25, 25);
+
+                link.CreateDocument();
+                link.Print();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, ex.Message);
+                XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        #endregion
+
         #region Numeric Formatting
 
         /// <summary>
@@ -737,8 +869,19 @@ namespace ERPNext_PowerPlay.Forms
             if (e.MenuType == DevExpress.XtraGrid.Views.Grid.GridMenuType.Row)
             {
                 DXPopupMenu menu2 = new DXPopupMenu();
-                DXSubMenuItem sItem = new DXSubMenuItem("Export Options");
-                sItem.Items.Add(new DXMenuItem("Print Preview", new EventHandler(ExportGrid), image: imageCollection1.Images[6]));
+
+                // Print submenu
+                DXSubMenuItem printItem = new DXSubMenuItem("Print");
+                DXMenuItem printPreview = new DXMenuItem("Print Preview", new EventHandler(PrintPreview_Grid));
+                printPreview.Tag = gv;
+                printItem.Items.Add(printPreview);
+                DXMenuItem printDirect = new DXMenuItem("Print", new EventHandler(PrintDirect_Grid));
+                printDirect.Tag = gv;
+                printItem.Items.Add(printDirect);
+                menu2.Items.Add(printItem);
+
+                // Export submenu
+                DXSubMenuItem sItem = new DXSubMenuItem("Export");
                 sItem.Items.Add(new DXMenuItem("Export to xlsx", new EventHandler(ExportGrid), image: imageCollection1.Images[3]));
                 sItem.Items.Add(new DXMenuItem("Export to csv", new EventHandler(ExportGrid), image: imageCollection1.Images[4]));
                 sItem.Items.Add(new DXMenuItem("Export to pdf", new EventHandler(ExportGrid), image: imageCollection1.Images[5]));
