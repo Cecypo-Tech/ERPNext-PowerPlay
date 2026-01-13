@@ -7,7 +7,9 @@ using SQLitePCL;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Dynamic;
+using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -272,12 +274,12 @@ namespace ERPNext_PowerPlay.Helpers
 
         public async Task<string> GetLinkedPaymentEntries(string doctype, string docname)
     {
-        // Query Payment Entry Reference where reference_doctype and reference_name match
+        // Query Payment Entry directly filtering by references child table
+        // Payment Entry Reference child table is not directly accessible via API
         string filter = string.Format(
-            "api/resource/Payment Entry Reference?fields=[\"parent\",\"allocated_amount\"]" +
-            "&filters=[[\"Payment Entry Reference\",\"reference_doctype\",\"=\",\"{0}\"]," +
-            "[\"Payment Entry Reference\",\"reference_name\",\"=\",\"{1}\"]]",
-            doctype, docname);
+            "api/resource/Payment Entry?fields=[\"name\",\"posting_date\",\"paid_amount\",\"mode_of_payment\",\"reference_no\"]" +
+            "&filters=[[\"Payment Entry\",\"references\",\"like\",\"%{0}%\"]]",
+            docname);
         return await GetAsString(filter, "");
     }
 
@@ -286,6 +288,212 @@ namespace ERPNext_PowerPlay.Helpers
         // Get Payment Entry details
         return await GetAsString("api/resource/Payment Entry/", paymentEntryName);
     }
+
+    #region GetDocumentJson - Unified document fetch with enrichment
+
+    /// <summary>
+    /// Gets a document's full JSON and enriches it with linked payments and cleaned HTML.
+    /// This is the preferred method for getting document data for printing/display.
+    /// </summary>
+    /// <param name="doctype">The DocType (e.g., "Sales Invoice", "Sales Order")</param>
+    /// <param name="docname">The document name/ID</param>
+    /// <param name="enrich">Whether to enrich the JSON with linked payments and strip HTML (default: true)</param>
+    /// <returns>JSON string with the document data</returns>
+    public async Task<string> GetDocumentJson(string doctype, string docname, bool enrich = true)
+    {
+        try
+        {
+            // Get the raw document JSON
+            string jsonDoc = await GetAsString($"api/resource/{doctype}/", docname);
+
+            if (string.IsNullOrEmpty(jsonDoc))
+            {
+                Log.Warning("GetDocumentJson: Empty response for {0}/{1}", doctype, docname);
+                return jsonDoc;
+            }
+
+            // Enrich if requested
+            if (enrich)
+            {
+                jsonDoc = await EnrichJsonDocument(jsonDoc, doctype, docname);
+            }
+
+            return jsonDoc;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "GetDocumentJson failed for {0}/{1}", doctype, docname);
+            return "";
+        }
+    }
+
+    /// <summary>
+    /// Enriches a document JSON with linked payment information and strips HTML from item descriptions.
+    /// </summary>
+    private async Task<string> EnrichJsonDocument(string jsonDoc, string doctype, string docname)
+    {
+        try
+        {
+            using (JsonDocument document = JsonDocument.Parse(jsonDoc))
+            {
+                var root = document.RootElement;
+                var dataElement = JsonHelper.GetJsonElement(root, "data");
+
+                if (dataElement.ValueKind == JsonValueKind.Undefined)
+                {
+                    Log.Warning("EnrichJsonDocument: No 'data' element found in JSON");
+                    return jsonDoc;
+                }
+
+                // Build a new JSON object with modifications
+                var options = new JsonWriterOptions { Indented = false };
+                using (var stream = new MemoryStream())
+                {
+                    using (var writer = new Utf8JsonWriter(stream, options))
+                    {
+                        writer.WriteStartObject();
+                        writer.WritePropertyName("data");
+                        writer.WriteStartObject();
+
+                        // Copy all existing properties from data, modifying items as needed
+                        foreach (var property in dataElement.EnumerateObject())
+                        {
+                            if (property.Name == "items" && property.Value.ValueKind == JsonValueKind.Array)
+                            {
+                                // Write items with HTML stripped from description
+                                writer.WritePropertyName("items");
+                                writer.WriteStartArray();
+                                foreach (var item in property.Value.EnumerateArray())
+                                {
+                                    writer.WriteStartObject();
+                                    foreach (var itemProp in item.EnumerateObject())
+                                    {
+                                        if (itemProp.Name == "description" && itemProp.Value.ValueKind == JsonValueKind.String)
+                                        {
+                                            string stripped = StripHtml(itemProp.Value.GetString());
+                                            writer.WriteString("description", stripped);
+                                        }
+                                        else
+                                        {
+                                            itemProp.WriteTo(writer);
+                                        }
+                                    }
+                                    writer.WriteEndObject();
+                                }
+                                writer.WriteEndArray();
+                            }
+                            else
+                            {
+                                property.WriteTo(writer);
+                            }
+                        }
+
+                        // Fetch and add linked payments
+                        var linkedPayments = await GetLinkedPaymentsInternal(doctype, docname);
+                        writer.WritePropertyName("linked_payments");
+                        writer.WriteStartArray();
+                        foreach (var payment in linkedPayments)
+                        {
+                            writer.WriteStartObject();
+                            writer.WriteString("payment_entry", payment.PaymentEntry);
+                            writer.WriteString("posting_date", payment.PostingDate);
+                            writer.WriteNumber("paid_amount", payment.PaidAmount);
+                            writer.WriteString("mode_of_payment", payment.ModeOfPayment);
+                            writer.WriteString("reference_no", payment.ReferenceNo ?? "");
+                            writer.WriteNumber("allocated_amount", payment.AllocatedAmount);
+                            writer.WriteEndObject();
+                        }
+                        writer.WriteEndArray();
+
+                        writer.WriteEndObject(); // end data
+                        writer.WriteEndObject(); // end root
+                    }
+
+                    return Encoding.UTF8.GetString(stream.ToArray());
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "EnrichJsonDocument failed, returning original JSON");
+            return jsonDoc;
+        }
+    }
+
+    /// <summary>
+    /// Strips HTML tags from a string
+    /// </summary>
+    private static string StripHtml(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return input;
+        return Regex.Replace(input, "<.*?>", string.Empty);
+    }
+
+    /// <summary>
+    /// Gets linked payment entries for a document
+    /// </summary>
+    private async Task<List<LinkedPayment>> GetLinkedPaymentsInternal(string doctype, string docname)
+    {
+        var payments = new List<LinkedPayment>();
+        try
+        {
+            string peJson = await GetLinkedPaymentEntries(doctype, docname);
+
+            if (string.IsNullOrEmpty(peJson)) return payments;
+
+            using (JsonDocument peDoc = JsonDocument.Parse(peJson))
+            {
+                var dataArray = JsonHelper.GetJsonElement(peDoc.RootElement, "data");
+                if (dataArray.ValueKind != JsonValueKind.Array) return payments;
+
+                foreach (var peEntry in dataArray.EnumerateArray())
+                {
+                    var nameElement = JsonHelper.GetJsonElement(peEntry, "name");
+                    var postingDateElement = JsonHelper.GetJsonElement(peEntry, "posting_date");
+                    var paidAmountElement = JsonHelper.GetJsonElement(peEntry, "paid_amount");
+                    var modeOfPaymentElement = JsonHelper.GetJsonElement(peEntry, "mode_of_payment");
+                    var referenceNoElement = JsonHelper.GetJsonElement(peEntry, "reference_no");
+
+                    string peName = JsonHelper.GetJsonElementValue(nameElement);
+                    if (string.IsNullOrEmpty(peName)) continue;
+
+                    double paidAmount = 0;
+                    if (paidAmountElement.ValueKind == JsonValueKind.Number)
+                        paidAmount = paidAmountElement.GetDouble();
+
+                    payments.Add(new LinkedPayment
+                    {
+                        PaymentEntry = peName,
+                        PostingDate = JsonHelper.GetJsonElementValue(postingDateElement) ?? "",
+                        PaidAmount = paidAmount,
+                        ModeOfPayment = JsonHelper.GetJsonElementValue(modeOfPaymentElement) ?? "",
+                        ReferenceNo = JsonHelper.GetJsonElementValue(referenceNoElement),
+                        AllocatedAmount = paidAmount // Using paid_amount as allocated since we can't get per-reference allocation easily
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "GetLinkedPaymentsInternal failed for {0}/{1}", doctype, docname);
+        }
+        return payments;
+    }
+
+    /// <summary>
+    /// Internal class for linked payment data
+    /// </summary>
+    private class LinkedPayment
+    {
+        public string PaymentEntry { get; set; }
+        public string PostingDate { get; set; }
+        public double PaidAmount { get; set; }
+        public string ModeOfPayment { get; set; }
+        public string ReferenceNo { get; set; }
+        public double AllocatedAmount { get; set; }
+    }
+
+    #endregion
 
     public async Task<bool> UpdateCount(string api_endpoint, Frappe_DocList.data doc)
         {   //With API Token
