@@ -95,6 +95,8 @@ namespace ERPNext_PowerPlay.Forms
                             SetupGrid();
                             FormatNumericFields_Grid(currentView);
                             currentView.ViewCaption = string.Format("{0} - {1} to {2}", rpt.ReportName, dtFrom.DateTime.Date.ToString("yy/MM/dd"), dtTo.DateTime.Date.ToString("yy/MM/dd"));
+                            // Load layout AFTER all setup is complete
+                            XtraGrid_LoadLayout();
                         }
                     }
                     else                        //Pivot
@@ -232,13 +234,10 @@ namespace ERPNext_PowerPlay.Forms
         public async void SetupGrid()
         {
             GridView gv = (GridView)currentGrid.MainView;
-            gv.PopulateColumns();
             try
             {
-
                 gv.BeginUpdate();
                 gv.PopupMenuShowing += gv_Data_PopupMenuShowing;
-                XtraGrid_LoadLayout();
                 gv.OptionsSelection.MultiSelect = true;
                 gv.OptionsMenu.ShowConditionalFormattingItem = true;
                 gv.OptionsMenu.EnableColumnMenu = true;
@@ -259,12 +258,16 @@ namespace ERPNext_PowerPlay.Forms
                 gv.OptionsPrint.PrintVertLines = false;
                 gv.OptionsPrint.ExpandAllDetails = true;
                 gv.OptionsPrint.ExpandAllGroups = true;
+                gv.OptionsPrint.AutoWidth = false;
+                gv.OptionsPrint.UsePrintStyles = true;
+                // Reduce print row height to fit more rows per page
+                gv.AppearancePrint.Row.Font = new Font(gv.AppearancePrint.Row.Font.FontFamily, 8f);
+                gv.AppearancePrint.Row.Options.UseFont = true;
                 gv.OptionsLayout.StoreAppearance = true;
                 gv.OptionsLayout.StoreAllOptions = true;
                 gv.OptionsLayout.StoreVisualOptions = true;
                 gv.OptionsLayout.StoreDataSettings = true;
                 gv.OptionsView.GroupFooterShowMode = GroupFooterShowMode.VisibleAlways;
-
 
                 if (gv.Columns.Count > 0)
                 {
@@ -279,10 +282,17 @@ namespace ERPNext_PowerPlay.Forms
                                 gridColumns.DisplayFormat.FormatString = "n2";
                                 gridColumns.GroupFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
                                 gridColumns.GroupFormat.FormatString = "n2";
+                                // Add footer summary
                                 if (gridColumns.Summary.Count == 0)
                                 {
                                     gridColumns.Summary.Add(DevExpress.Data.SummaryItemType.Sum);
                                     gridColumns.Summary[gridColumns.Summary.Count - 1].DisplayFormat = "{0:n2}";
+                                }
+                                // Add group footer summary
+                                var groupSummary = new GridGroupSummaryItem(DevExpress.Data.SummaryItemType.Sum, gridColumns.FieldName, gridColumns, "{0:n2}");
+                                if (!gv.GroupSummary.Cast<GridGroupSummaryItem>().Any(gs => gs.FieldName == gridColumns.FieldName))
+                                {
+                                    gv.GroupSummary.Add(groupSummary);
                                 }
                             }
                         }
@@ -291,7 +301,7 @@ namespace ERPNext_PowerPlay.Forms
                             if (gridColumns.FieldName.ToUpper().Contains(str.ToUpper()))
                             {
                                 gridColumns.DisplayFormat.FormatType = DevExpress.Utils.FormatType.DateTime;
-                                gridColumns.DisplayFormat.FormatString = "g";
+                                gridColumns.DisplayFormat.FormatString = "d"; // Date only, no time
                             }
                         }
                     }
@@ -341,9 +351,13 @@ namespace ERPNext_PowerPlay.Forms
                 DXMenuItem item = sender as DXMenuItem;
                 GridView gv = item.Tag as GridView;
                 if (gv == null) return;
-
+                if (gv.Tag == null)
+                {
+                    Log.Warning("Grid tag missing!");
+                    return;
+                }
                 EnsureLayoutsFolderExists();
-                string path = GetLayoutPath(gv.ViewCaption, false);
+                string path = GetLayoutPath(gv.Tag.ToString(), false);
                 gv.SaveLayoutToXml(path);
                 Log.Information("Grid layout saved: {0}", path);
                 XtraMessageBox.Show("Layout saved successfully", "Layout", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -386,9 +400,14 @@ namespace ERPNext_PowerPlay.Forms
                 if (File.Exists(path))
                 {
                     // Handle layout upgrade by setting options before restore
+                    gv.BeginUpdate();
                     gv.OptionsLayout.Columns.AddNewColumns = true;
                     gv.OptionsLayout.Columns.RemoveOldColumns = false;
-                    gv.RestoreLayoutFromXml(path, DevExpress.Utils.OptionsLayoutBase.FullLayout);
+                    // Use default restore (not FullLayout) to preserve data bindings
+                    gv.RestoreLayoutFromXml(path);
+                    gv.EndUpdate();
+                    // Refresh data to ensure cells display correctly
+                    gv.RefreshData();
                     Log.Information("Grid layout loaded: {0}", path);
                 }
             }
@@ -410,7 +429,9 @@ namespace ERPNext_PowerPlay.Forms
                     // Handle layout upgrade by setting options before restore
                     pv.OptionsLayout.Columns.AddNewColumns = true;
                     pv.OptionsLayout.Columns.RemoveOldColumns = false;
-                    pv.RestoreLayoutFromXml(path, DevExpress.Utils.OptionsLayoutBase.FullLayout);
+                    // Use default restore (not FullLayout) to preserve data bindings
+                    pv.RestoreLayoutFromXml(path);
+                    pv.RefreshData();
                     Log.Information("Pivot layout loaded: {0}", path);
                 }
             }
@@ -500,8 +521,9 @@ namespace ERPNext_PowerPlay.Forms
                 DXMenuItem item = sender as DXMenuItem;
                 GridView gv = item.Tag as GridView;
                 if (gv == null) return;
+                if (gv.Tag == null) return;
 
-                string path = GetLayoutPath(gv.ViewCaption, false);
+                string path = GetLayoutPath(gv.Tag.ToString(), false);
                 if (File.Exists(path))
                 {
                     File.Delete(path);
@@ -551,8 +573,8 @@ namespace ERPNext_PowerPlay.Forms
         // Legacy method for compatibility
         private void XtraGrid_LoadLayout()
         {
-            if (currentView != null)
-                LoadLayout_Grid(currentView, currentView.ViewCaption);
+            if (currentView != null && currentView.Tag != null)
+                LoadLayout_Grid(currentView, currentView.Tag.ToString());
         }
 
         #endregion
@@ -571,8 +593,8 @@ namespace ERPNext_PowerPlay.Forms
                 PrintableComponentLink link = new PrintableComponentLink(new PrintingSystem());
                 link.Component = gv.GridControl;
 
-                // Set narrow margins (25 = ~0.25 inch)
-                link.Margins = new System.Drawing.Printing.Margins(25, 25, 25, 25);
+                // Set margins (left, right, top, bottom) - top increased by 5
+                link.Margins = new System.Drawing.Printing.Margins(30, 25, 30, 30);
 
                 // Header and footer
                 PageHeaderFooter phf = link.PageHeaderFooter as PageHeaderFooter;
@@ -580,7 +602,7 @@ namespace ERPNext_PowerPlay.Forms
                 phf.Header.Content.AddRange(new string[] { "", gv.ViewCaption ?? "Grid Report", "" });
                 phf.Header.LineAlignment = BrickAlignment.Center;
                 phf.Footer.Content.Clear();
-                phf.Footer.Content.AddRange(new string[] { "[Page # of Pages #]", "", "[Date Printed]" });
+                phf.Footer.Content.AddRange(new string[] { "ERPNext PowerPlay", "", "Page [Page #]/[Pages #]" });
                 phf.Footer.LineAlignment = BrickAlignment.Near;
 
                 link.CreateDocument();
@@ -630,8 +652,8 @@ namespace ERPNext_PowerPlay.Forms
                 PrintableComponentLink link = new PrintableComponentLink(new PrintingSystem());
                 link.Component = pv;
 
-                // Set narrow margins (25 = ~0.25 inch)
-                link.Margins = new System.Drawing.Printing.Margins(25, 25, 25, 25);
+                // Set margins (left, right, top, bottom) - top increased by 5
+                link.Margins = new System.Drawing.Printing.Margins(25, 25, 30, 25);
 
                 // Header and footer
                 PageHeaderFooter phf = link.PageHeaderFooter as PageHeaderFooter;
@@ -639,7 +661,7 @@ namespace ERPNext_PowerPlay.Forms
                 phf.Header.Content.AddRange(new string[] { "", pv.Tag?.ToString() ?? "Pivot Report", "" });
                 phf.Header.LineAlignment = BrickAlignment.Center;
                 phf.Footer.Content.Clear();
-                phf.Footer.Content.AddRange(new string[] { "[Page # of Pages #]", "", "[Date Printed]" });
+                phf.Footer.Content.AddRange(new string[] { "ERPNext PowerPlay", "", "Page [Page #]/[Pages #]" });
                 phf.Footer.LineAlignment = BrickAlignment.Near;
 
                 link.CreateDocument();
@@ -675,6 +697,76 @@ namespace ERPNext_PowerPlay.Forms
                 Log.Error(ex, ex.Message);
                 XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        #endregion
+
+        #region Toolbar Actions
+
+        private void barButtonPrintPreview_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            if (!toggleSwitch1.IsOn && currentView != null)
+                PrintPreview_Grid(null, EventArgs.Empty);
+            else if (toggleSwitch1.IsOn && currentPivot != null)
+                PrintPreview_Pivot(null, EventArgs.Empty);
+        }
+
+        private void barButtonPrint_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            if (!toggleSwitch1.IsOn && currentView != null)
+                PrintDirect_Grid(null, EventArgs.Empty);
+            else if (toggleSwitch1.IsOn && currentPivot != null)
+                PrintDirect_Pivot(null, EventArgs.Empty);
+        }
+
+        private void barButtonExportXlsx_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            ExportCurrentGrid("Export to xlsx");
+        }
+
+        private void barButtonExportCsv_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            ExportCurrentGrid("Export to csv");
+        }
+
+        private void barButtonExportPdf_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            ExportCurrentGrid("Export to pdf");
+        }
+
+        private void barButtonSaveLayout_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            if (!toggleSwitch1.IsOn && currentView != null)
+            {
+                var menuItem = new DXMenuItem { Tag = currentView };
+                SaveLayout_Grid(menuItem, EventArgs.Empty);
+            }
+            else if (toggleSwitch1.IsOn && currentPivot != null)
+            {
+                var menuItem = new DXMenuItem { Tag = currentPivot };
+                SaveLayout_Pivot(menuItem, EventArgs.Empty);
+            }
+        }
+
+        private void barButtonResetLayout_ItemClick(object sender, DevExpress.XtraBars.ItemClickEventArgs e)
+        {
+            if (!toggleSwitch1.IsOn && currentView != null)
+            {
+                var menuItem = new DXMenuItem { Tag = currentView };
+                ResetLayout_Grid(menuItem, EventArgs.Empty);
+            }
+            else if (toggleSwitch1.IsOn && currentPivot != null)
+            {
+                var menuItem = new DXMenuItem { Tag = currentPivot };
+                ResetLayout_Pivot(menuItem, EventArgs.Empty);
+            }
+        }
+
+        private void ExportCurrentGrid(string exportType)
+        {
+            if (currentGrid == null) return;
+            var menuItem = new DXMenuItem { Caption = exportType };
+            ExportGrid(menuItem, EventArgs.Empty);
         }
 
         #endregion
@@ -932,10 +1024,10 @@ namespace ERPNext_PowerPlay.Forms
 
                         // Create a PageHeaderFooter
                         PageHeaderFooter phf = link.PageHeaderFooter as PageHeaderFooter;
-                        
+
                         // Clear the PageHeaderFooter's contents.
                         phf.Header.Content.Clear();
-                        
+
                         // Add custom information to the link's header.
                         phf.Header.Content.AddRange(new string[] { hleftColumn, hmiddleColumn, hrightColumn });
                         phf.Header.LineAlignment = BrickAlignment.Far;
@@ -946,7 +1038,7 @@ namespace ERPNext_PowerPlay.Forms
                         //Set thinner margins
                         link.Margins.Top = 60; // Set top margin in points
                         link.Margins.Bottom = 60;
-                        link.Margins.Left =40;
+                        link.Margins.Left = 40;
                         link.Margins.Right = 40;
 
                         link.CreateDocument();

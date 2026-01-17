@@ -216,6 +216,7 @@ namespace ERPNext_PowerPlay
                 PrintActions pa = new PrintActions();
                 DocType d = (DocType)barEditItem_DoctypePreview.EditValue;
                 string docName = (string)barEditItem_DocNamePreview.EditValue;
+                docName = docName.Trim();
                 using (var db = new AppDbContext())
                 {
                     foreach (PrinterSetting ps in db.PrinterSetting.Where(x => x.Enabled && x.DocType == d))
@@ -566,6 +567,7 @@ namespace ERPNext_PowerPlay
         {
             DocType d = (DocType)barEditItem_DoctypePreview.EditValue;
             string docName = (string)barEditItem_DocNamePreview.EditValue;
+            docName = docName.Trim();
             string doctype = d.GetAttributeOfType<DescriptionAttribute>().Description;
             try
             {
