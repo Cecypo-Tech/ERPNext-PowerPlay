@@ -65,19 +65,58 @@ namespace ERPNext_PowerPlay.Forms
                 {
                     var rpt = db.ReportList.Local.ToBindingList().FirstOrDefault(x => x.ReportName == comboBoxEdit1.Text);
                     FrappeAPI fapi = new FrappeAPI();
-                    string query = string.Format("?fields={0}", rpt.FieldList);
-                    if (!string.IsNullOrEmpty(rpt.FilterList))
-                    {
-                        string filter = rpt.FilterList
-                            .Replace("{from_date}", dtFrom.DateTime.Date.ToString("yyyy/MM/dd"))
-                            .Replace("{to_date}", dtTo.DateTime.Date.ToString("yyyy/MM/dd"));
-                        query = string.Format("?fields={0}&filters=[{1}]", rpt.FieldList, filter);
-                    }
-                    query += "&limit_page_length=9999";
-                    string json = await fapi.GetAsString(rpt.EndPoint, query);
+                    string json;
+                    JsonElement docdata;
+                    List<QueryReportColumn> columnMeta = null;
 
-                    JsonElement doc = JsonSerializer.Deserialize<JsonElement>(json);
-                    JsonElement docdata = JsonHelper.GetJsonElement(doc, "data");
+                    // Check if this is a query_report endpoint
+                    bool isQueryReport = rpt.EndPoint.Contains("api/method/frappe.desk.query_report.run", StringComparison.OrdinalIgnoreCase);
+
+                    if (isQueryReport)
+                    {
+                        // For query_report endpoints, parse the FieldList JSON to extract report_name and filters
+                        string fieldListJson = rpt.FieldList
+                            .Replace("{from_date}", dtFrom.DateTime.Date.ToString("yyyy-MM-dd"))
+                            .Replace("{to_date}", dtTo.DateTime.Date.ToString("yyyy-MM-dd"));
+
+                        // Parse the JSON to get report_name and filters
+                        JsonElement fieldListDoc = JsonSerializer.Deserialize<JsonElement>(fieldListJson);
+                        string reportName = fieldListDoc.GetProperty("report_name").GetString() ?? rpt.ReportName;
+                        string filtersJson = "{}";
+                        if (fieldListDoc.TryGetProperty("filters", out JsonElement filtersElement))
+                        {
+                            filtersJson = filtersElement.GetRawText();
+                        }
+
+                        json = await fapi.GetQueryReport(rpt.EndPoint, reportName, filtersJson);
+
+                        JsonElement doc = JsonSerializer.Deserialize<JsonElement>(json);
+                        JsonElement message = JsonHelper.GetJsonElement(doc, "message");
+                        docdata = JsonHelper.GetJsonElement(message, "result");
+
+                        // Extract column metadata
+                        if (message.TryGetProperty("columns", out JsonElement columnsElement))
+                        {
+                            columnMeta = JsonSerializer.Deserialize<List<QueryReportColumn>>(columnsElement.GetRawText());
+                        }
+                    }
+                    else
+                    {
+                        // Standard resource API
+                        string query = string.Format("?fields={0}", rpt.FieldList);
+                        if (!string.IsNullOrEmpty(rpt.FilterList))
+                        {
+                            string filter = rpt.FilterList
+                                .Replace("{from_date}", dtFrom.DateTime.Date.ToString("yyyy/MM/dd"))
+                                .Replace("{to_date}", dtTo.DateTime.Date.ToString("yyyy/MM/dd"));
+                            query = string.Format("?fields={0}&filters=[{1}]", rpt.FieldList, filter);
+                        }
+                        query += "&limit_page_length=9999";
+                        json = await fapi.GetAsString(rpt.EndPoint, query);
+
+                        JsonElement doc = JsonSerializer.Deserialize<JsonElement>(json);
+                        docdata = JsonHelper.GetJsonElement(doc, "data");
+                    }
 
                     if (!toggleSwitch1.IsOn)    //Grid
                     {
@@ -92,6 +131,13 @@ namespace ERPNext_PowerPlay.Forms
                             gc.MainView.PopulateColumns();
                             currentGrid = gc;
                             currentView = (GridView)gc.MainView;
+
+                            // Apply column metadata if available (query reports)
+                            if (columnMeta != null)
+                            {
+                                ApplyColumnMetadata(currentView, columnMeta);
+                            }
+
                             SetupGrid();
                             FormatNumericFields_Grid(currentView);
                             currentView.ViewCaption = string.Format("{0} - {1} to {2}", rpt.ReportName, dtFrom.DateTime.Date.ToString("yy/MM/dd"), dtTo.DateTime.Date.ToString("yy/MM/dd"));
@@ -112,7 +158,35 @@ namespace ERPNext_PowerPlay.Forms
                             {
                                 string name = js.Schema.Nodes[i].Value.Name;
                                 PivotGridField field = new PivotGridField(name, PivotArea.FilterArea);
-                                field.Caption = name;
+
+                                // Apply caption from column metadata if available
+                                if (columnMeta != null)
+                                {
+                                    var colMeta = columnMeta.FirstOrDefault(c => c.fieldname == name);
+                                    if (colMeta != null)
+                                    {
+                                        field.Caption = colMeta.label ?? name;
+                                        // Apply formatting based on fieldtype
+                                        if (colMeta.fieldtype == "Currency" || colMeta.fieldtype == "Float")
+                                        {
+                                            field.CellFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                                            field.CellFormat.FormatString = "#,##0.00";
+                                        }
+                                        else if (colMeta.fieldtype == "Date")
+                                        {
+                                            field.CellFormat.FormatType = DevExpress.Utils.FormatType.DateTime;
+                                            field.CellFormat.FormatString = "d";
+                                        }
+                                    }
+                                    else
+                                    {
+                                        field.Caption = name;
+                                    }
+                                }
+                                else
+                                {
+                                    field.Caption = name;
+                                }
 
                                 pv.Fields.Add(field);
                             }
@@ -129,6 +203,94 @@ namespace ERPNext_PowerPlay.Forms
             {
                 Log.Error(ex, ex.Message);
                 XtraMessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Column metadata from query_report response
+        /// </summary>
+        private class QueryReportColumn
+        {
+            public string label { get; set; }
+            public string fieldname { get; set; }
+            public string fieldtype { get; set; }
+            public string options { get; set; }
+            public string width { get; set; }
+            public bool hidden { get; set; }
+        }
+
+        /// <summary>
+        /// Apply column metadata from query_report to grid columns
+        /// </summary>
+        private void ApplyColumnMetadata(GridView gv, List<QueryReportColumn> columnMeta)
+        {
+            if (gv == null || columnMeta == null) return;
+
+            foreach (GridColumn col in gv.Columns)
+            {
+                var meta = columnMeta.FirstOrDefault(c => c.fieldname == col.FieldName);
+                if (meta != null)
+                {
+                    // Set caption/label
+                    col.Caption = meta.label ?? col.FieldName;
+
+                    // Hide column if specified
+                    if (meta.hidden)
+                    {
+                        col.Visible = false;
+                    }
+
+                    // Apply formatting based on fieldtype
+                    switch (meta.fieldtype?.ToLower())
+                    {
+                        case "currency":
+                        case "float":
+                            col.DisplayFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                            col.DisplayFormat.FormatString = "#,##0.00";
+                            col.GroupFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                            col.GroupFormat.FormatString = "#,##0.00";
+                            // Add summary
+                            if (col.Summary.Count == 0)
+                            {
+                                col.Summary.Add(DevExpress.Data.SummaryItemType.Sum);
+                                col.Summary[col.Summary.Count - 1].DisplayFormat = "{0:#,##0.00}";
+                            }
+                            // Add group summary
+                            var groupSummary = new GridGroupSummaryItem(DevExpress.Data.SummaryItemType.Sum, col.FieldName, col, "{0:#,##0.00}");
+                            if (!gv.GroupSummary.Cast<GridGroupSummaryItem>().Any(gs => gs.FieldName == col.FieldName))
+                            {
+                                gv.GroupSummary.Add(groupSummary);
+                            }
+                            break;
+
+                        case "int":
+                        case "integer":
+                            col.DisplayFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                            col.DisplayFormat.FormatString = "#,##0";
+                            break;
+
+                        case "date":
+                            col.DisplayFormat.FormatType = DevExpress.Utils.FormatType.DateTime;
+                            col.DisplayFormat.FormatString = "d"; // Date only
+                            break;
+
+                        case "datetime":
+                            col.DisplayFormat.FormatType = DevExpress.Utils.FormatType.DateTime;
+                            col.DisplayFormat.FormatString = "g"; // General date/time
+                            break;
+
+                        case "percent":
+                            col.DisplayFormat.FormatType = DevExpress.Utils.FormatType.Numeric;
+                            col.DisplayFormat.FormatString = "0.00%";
+                            break;
+                    }
+
+                    // Set column width if specified
+                    if (!string.IsNullOrEmpty(meta.width) && int.TryParse(meta.width, out int width))
+                    {
+                        col.Width = width;
+                    }
+                }
             }
         }
 

@@ -78,6 +78,12 @@ namespace ERPNext_PowerPlay.Helpers
         {   //With API Token
             try
             {
+                // Strip leading "/" from endpoints starting with "/api"
+                if (api_endpoint.StartsWith("/api", StringComparison.OrdinalIgnoreCase))
+                {
+                    api_endpoint = api_endpoint.TrimStart('/');
+                }
+
                 string cleanedUrl = CleanUrl(Program.FrappeURL, api_endpoint, api_filter);
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, cleanedUrl);
                 request.Headers.Add("Authorization", $"token {Program.ApiToken}");
@@ -91,6 +97,46 @@ namespace ERPNext_PowerPlay.Helpers
                     return result;
                 }
 
+            }
+            catch (Exception exSQL)
+            {
+                Log.Error(exSQL, exSQL.Message + Environment.NewLine + "Failing Endpoint: " + api_endpoint);
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// Calls query_report.run endpoint with form data
+        /// </summary>
+        public async Task<string> GetQueryReport(string api_endpoint, string reportName, string filtersJson)
+        {
+            try
+            {
+                // Strip leading "/" from endpoints starting with "/api"
+                if (api_endpoint.StartsWith("/api", StringComparison.OrdinalIgnoreCase))
+                {
+                    api_endpoint = api_endpoint.TrimStart('/');
+                }
+
+                string cleanedUrl = CleanUrl(Program.FrappeURL, api_endpoint, "");
+
+                // Use GET with query parameters (Frappe's preferred method)
+                string queryParams = $"?report_name={Uri.EscapeDataString(reportName)}&filters={Uri.EscapeDataString(filtersJson)}";
+                cleanedUrl += queryParams;
+
+                Log.Information("Query Report URL: {0}", cleanedUrl);
+
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, cleanedUrl);
+                request.Headers.Add("Authorization", $"token {Program.ApiToken}");
+
+                using (var client = new HttpClient() { BaseAddress = new Uri(Program.FrappeURL) })
+                {
+                    HttpResponseMessage response_qr = await client.SendAsync(request);
+                    response_qr.EnsureSuccessStatusCode();
+
+                    string result = await response_qr.Content.ReadAsStringAsync();
+                    return result;
+                }
             }
             catch (Exception exSQL)
             {
