@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir /B:*)"
+      "Bash(dir /B:*)",
+      "WebFetch(domain:gist.github.com)",
+      "Bash(dotnet build:*)"
     ]
   }
 }
