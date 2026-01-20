@@ -59,12 +59,34 @@ Example A5 and Thermal/Roll Paper Templates:
      - "etr_invoice_number","!=","" - custom field (for Kenya integrations), etr_invoice_number is not empty
      - "posting_date",">","2024-01-01" - document only after this date
      - "total","!=","0" - where totals are not 0
-  - Sample with User Filter: `[["Sales Invoice","docstatus","=","1"],["Sales Invoice","etr_invoice_number","!=",""],["Sales Invoice","posting_date",">","2024-09-25"],["Sales Invoice","total","!=","0"],["Sales Invoice", "owner", "IN", ["me@here.com", "you@here.com`"]]]` 
+  - Sample with User Filter: `[["Sales Invoice","docstatus","=","1"],["Sales Invoice","etr_invoice_number","!=",""],["Sales Invoice","posting_date",">","2024-09-25"],["Sales Invoice","total","!=","0"],["Sales Invoice", "owner", "IN", ["me@here.com", "you@here.com`"]]]`
 
-  **SETTINGS FOR REPORTS**
+
+  **SETTINGS FOR DOCTYPE REPORTS**
 - The GRID system we use is just simply magic. Grouping, filtering, ordering, sorting and more. AND ability to SAVE your preferred view (of groups, ordering, etc)!
 - Payment Entry Report Sample:
 ![Reports](https://i.imgur.com/ufHsaq9.png) (Config on the left, Report result on the right)
   - Field List: `["name", "owner", "posting_date", "status", "payment_type", "mode_of_payment", "reference_no", "paid_amount"]`
   - Filter List: `["Payment Entry", "posting_date", ">=", "2024/04/25"],["Payment Entry", "posting_date", "<=", "2025/04/25"]`
-  - Export: Experimental.
+
+
+  **HOW TO LOAD REPORTS**
+- Name: Payment Ledger Report
+- DocType: <blank>
+- End Point: api/method/frappe.desk.query_report.run
+- Field List/Request Body: 
+```
+{
+    "report_name": "Payment Ledger",
+    "filters": {
+        "company": "<companyname>",
+        "period_start_date": "2026-01-02",
+        "period_end_date": "2026-01-17",
+        "account": [],
+        "party": []
+    },
+    "as_dict": 1
+}
+```
+
+ 
