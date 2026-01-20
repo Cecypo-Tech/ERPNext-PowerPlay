@@ -412,11 +412,25 @@ namespace ERPNext_PowerPlay.Helpers
                                 foreach (var item in property.Value.EnumerateArray())
                                 {
                                     writer.WriteStartObject();
+
+                                    // First pass: get item_name for comparison
+                                    string itemName = null;
+                                    if (item.TryGetProperty("item_name", out var itemNameProp) &&
+                                        itemNameProp.ValueKind == JsonValueKind.String)
+                                    {
+                                        itemName = itemNameProp.GetString();
+                                    }
+
                                     foreach (var itemProp in item.EnumerateObject())
                                     {
                                         if (itemProp.Name == "description" && itemProp.Value.ValueKind == JsonValueKind.String)
                                         {
                                             string stripped = StripHtml(itemProp.Value.GetString());
+                                            // Blank out description if it matches item_name
+                                            if (string.Equals(stripped, itemName, StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                stripped = "";
+                                            }
                                             writer.WriteString("description", stripped);
                                         }
                                         else
@@ -472,7 +486,8 @@ namespace ERPNext_PowerPlay.Helpers
     private static string StripHtml(string input)
     {
         if (string.IsNullOrEmpty(input)) return input;
-        return Regex.Replace(input, "<.*?>", string.Empty);
+        string stripped = Regex.Replace(input, "<.*?>", string.Empty);
+        return System.Net.WebUtility.HtmlDecode(stripped).Trim();
     }
 
     /// <summary>
