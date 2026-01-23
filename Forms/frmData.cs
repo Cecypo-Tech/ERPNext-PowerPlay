@@ -752,6 +752,9 @@ namespace ERPNext_PowerPlay.Forms
                 if (gv == null) gv = currentView;
                 if (gv == null) return;
 
+                // Enable auto-width to fit columns within page width
+                gv.OptionsPrint.AutoWidth = true;
+
                 PrintableComponentLink link = new PrintableComponentLink(new PrintingSystem());
                 link.Component = gv.GridControl;
 
@@ -786,6 +789,9 @@ namespace ERPNext_PowerPlay.Forms
                 if (gv == null) gv = currentView;
                 if (gv == null) return;
 
+                // Enable auto-width to fit columns within page width
+                gv.OptionsPrint.AutoWidth = true;
+
                 PrintableComponentLink link = new PrintableComponentLink(new PrintingSystem());
                 link.Component = gv.GridControl;
 
@@ -810,6 +816,10 @@ namespace ERPNext_PowerPlay.Forms
                 PivotGridControl pv = item?.Tag as PivotGridControl;
                 if (pv == null) pv = currentPivot;
                 if (pv == null) return;
+
+                // Enable auto-width to fit columns within page width
+                pv.OptionsPrint.PrintColumnHeaders = DevExpress.Utils.DefaultBoolean.True;
+                pv.OptionsPrint.PrintRowHeaders = DevExpress.Utils.DefaultBoolean.True;
 
                 PrintableComponentLink link = new PrintableComponentLink(new PrintingSystem());
                 link.Component = pv;
@@ -1171,6 +1181,10 @@ namespace ERPNext_PowerPlay.Forms
                 {
                     case "Print Preview":
                         path = "";
+
+                        // Enable auto-width to fit columns within page width
+                        currentView.OptionsPrint.AutoWidth = true;
+
                         PrintingSystem printingSystem1 = new PrintingSystem();
                         PrintableComponentLink link = new PrintableComponentLink();
                         printingSystem1.Links.AddRange(new object[] { link });
