@@ -200,13 +200,13 @@ namespace ERPNext_PowerPlay.Helpers
 
                 DevExpress.Utils.DeserializationSettings.InvokeTrusted(() =>
                 {
-                    // Trusted deserialization.  
+                    // Trusted deserialization.
                     XtraReport report = new XtraReport();
                     report.LoadLayout(copyData.REPX_Template);
                     report.DataSource = jsonDataSource;
                     //report.DataMember = "data";
                     //ORIENTATION SET IN REPX FILE
-                    report.CreateDocument();
+                     report.CreateDocument();
                     if (ForcePreview)
                     {
                         report.ShowRibbonPreview();
