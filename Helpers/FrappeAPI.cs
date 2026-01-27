@@ -108,7 +108,7 @@ namespace ERPNext_PowerPlay.Helpers
         /// <summary>
         /// Calls query_report.run endpoint with form data
         /// </summary>
-        public async Task<string> GetQueryReport(string api_endpoint, string reportName, string filtersJson)
+        public async Task<string> GetQueryReport(string api_endpoint, string fieldListJson)
         {
             try
             {
@@ -120,9 +120,17 @@ namespace ERPNext_PowerPlay.Helpers
 
                 string cleanedUrl = CleanUrl(Program.FrappeURL, api_endpoint, "");
 
-                // Use GET with query parameters (Frappe's preferred method)
-                string queryParams = $"?report_name={Uri.EscapeDataString(reportName)}&filters={Uri.EscapeDataString(filtersJson)}";
-                cleanedUrl += queryParams;
+                // Build query parameters from all properties in the JSON
+                JsonElement fieldListDoc = JsonSerializer.Deserialize<JsonElement>(fieldListJson);
+                var queryParams = new List<string>();
+                foreach (JsonProperty prop in fieldListDoc.EnumerateObject())
+                {
+                    string value = prop.Value.ValueKind == JsonValueKind.String
+                        ? prop.Value.GetString()
+                        : prop.Value.GetRawText();
+                    queryParams.Add($"{Uri.EscapeDataString(prop.Name)}={Uri.EscapeDataString(value)}");
+                }
+                cleanedUrl += "?" + string.Join("&", queryParams);
 
                 Log.Information("Query Report URL: {0}", cleanedUrl);
 
@@ -131,10 +139,10 @@ namespace ERPNext_PowerPlay.Helpers
 
                 using (var client = new HttpClient() { BaseAddress = new Uri(Program.FrappeURL) })
                 {
-                    HttpResponseMessage response_qr = await client.SendAsync(request);
-                    response_qr.EnsureSuccessStatusCode();
+                    HttpResponseMessage response = await client.SendAsync(request);
+                    response.EnsureSuccessStatusCode();
 
-                    string result = await response_qr.Content.ReadAsStringAsync();
+                    string result = await response.Content.ReadAsStringAsync();
                     return result;
                 }
             }
