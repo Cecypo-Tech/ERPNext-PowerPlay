@@ -79,14 +79,17 @@ Example A5 and Thermal/Roll Paper Templates:
 {
     "report_name": "Payment Ledger",
     "filters": {
-        "company": "<companyname>",
-        "period_start_date": "2026-01-02",
-        "period_end_date": "2026-01-17",
-        "account": [],
-        "party": []
+        "company": "<companyname>","period_start_date": "2026-01-02","period_end_date": "2026-01-17","account": [],"party": []
     },
     "as_dict": 1
 }
 ```
 
- 
+- Name: Sales Register
+```
+{
+    "report_name": "Sales Register",
+    "filters": {"from_date":"2025-12-01","to_date":"2026-01-24","company":"<company>","department":[]},
+    "ignore_prepared_report": 1
+}
+```

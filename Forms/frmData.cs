@@ -74,21 +74,13 @@ namespace ERPNext_PowerPlay.Forms
 
                     if (isQueryReport)
                     {
-                        // For query_report endpoints, parse the FieldList JSON to extract report_name and filters
+                        // For query_report endpoints, replace date placeholders in the FieldList JSON
                         string fieldListJson = rpt.FieldList
                             .Replace("{from_date}", dtFrom.DateTime.Date.ToString("yyyy-MM-dd"))
                             .Replace("{to_date}", dtTo.DateTime.Date.ToString("yyyy-MM-dd"));
 
-                        // Parse the JSON to get report_name and filters
-                        JsonElement fieldListDoc = JsonSerializer.Deserialize<JsonElement>(fieldListJson);
-                        string reportName = fieldListDoc.GetProperty("report_name").GetString() ?? rpt.ReportName;
-                        string filtersJson = "{}";
-                        if (fieldListDoc.TryGetProperty("filters", out JsonElement filtersElement))
-                        {
-                            filtersJson = filtersElement.GetRawText();
-                        }
-
-                        json = await fapi.GetQueryReport(rpt.EndPoint, reportName, filtersJson);
+                        // Pass the full JSON structure to preserve all parameters (report_name, filters, ignore_prepared_report, etc.)
+                        json = await fapi.GetQueryReport(rpt.EndPoint, fieldListJson);
 
                         JsonElement doc = JsonSerializer.Deserialize<JsonElement>(json);
                         JsonElement message = JsonHelper.GetJsonElement(doc, "message");
@@ -140,9 +132,10 @@ namespace ERPNext_PowerPlay.Forms
 
                             SetupGrid();
                             FormatNumericFields_Grid(currentView);
-                            currentView.ViewCaption = string.Format("{0} - {1} to {2}", rpt.ReportName, dtFrom.DateTime.Date.ToString("yy/MM/dd"), dtTo.DateTime.Date.ToString("yy/MM/dd"));
                             // Load layout AFTER all setup is complete
                             XtraGrid_LoadLayout();
+                            currentView.ViewCaption = string.Format("{0} - {1} to {2}", rpt.ReportName, dtFrom.DateTime.Date.ToShortDateString(), dtTo.DateTime.Date.ToShortDateString());
+
                         }
                     }
                     else                        //Pivot
@@ -759,12 +752,12 @@ namespace ERPNext_PowerPlay.Forms
                 link.Component = gv.GridControl;
 
                 // Set margins (left, right, top, bottom) - top increased by 5
-                link.Margins = new System.Drawing.Printing.Margins(30, 25, 30, 30);
+                link.Margins = new System.Drawing.Printing.Margins(35, 25, 30, 35);
 
                 // Header and footer
                 PageHeaderFooter phf = link.PageHeaderFooter as PageHeaderFooter;
                 phf.Header.Content.Clear();
-                phf.Header.Content.AddRange(new string[] { "", gv.ViewCaption ?? "Grid Report", "" });
+                //phf.Header.Content.AddRange(new string[] { "", gv.ViewCaption ?? "Grid Report", "" });
                 phf.Header.LineAlignment = BrickAlignment.Center;
                 phf.Footer.Content.Clear();
                 phf.Footer.Content.AddRange(new string[] { "ERPNext PowerPlay", "", "Page [Page #]/[Pages #]" });
