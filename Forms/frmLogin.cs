@@ -303,6 +303,11 @@ namespace ERPNext_PowerPlay
                 {
                     //Get Warehouse List & save to DB
                     HttpResponseMessage response = await new FrappeAPI().GetAsReponse("/api/resource/Warehouse", "?filters=[[\"Warehouse\",\"is_group\",\"=\",\"0\"]]");
+                    if (response == null)
+                    {
+                        Log.Warning("No response received when fetching warehouses.");
+                        return;
+                    }
                     response.EnsureSuccessStatusCode();
 
                     string result = await response.Content.ReadAsStringAsync();

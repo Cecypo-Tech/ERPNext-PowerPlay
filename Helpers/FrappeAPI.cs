@@ -18,6 +18,79 @@ namespace ERPNext_PowerPlay.Helpers
     public class FrappeAPI
     {
         /// <summary>
+        /// Parses a Frappe HTTP error response body into a clean, readable message.
+        /// Extracts the user-facing message from _server_messages or the exception field,
+        /// and logs a single tidy line rather than the raw stacktrace.
+        /// </summary>
+        /// <param name="statusCode">HTTP status code (e.g. 403, 417)</param>
+        /// <param name="reasonPhrase">HTTP reason phrase (e.g. "FORBIDDEN")</param>
+        /// <param name="url">The URL that was called</param>
+        /// <param name="responseBody">Raw response body from Frappe</param>
+        public static void LogFrappeError(int statusCode, string reasonPhrase, string url, string responseBody)
+        {
+            string userMessage = ExtractFrappeMessage(responseBody);
+            // Strip query string from URL for cleaner log line (fields/filters can be very long)
+            string shortUrl = url.Contains("?") ? url.Substring(0, url.IndexOf('?')) : url;
+
+            Log.Error("[HTTP {StatusCode}] {ShortUrl} — {Message}", statusCode, shortUrl, userMessage);
+            Log.Debug("[HTTP {StatusCode}] Full URL: {Url} | Raw body: {Body}", statusCode, url, responseBody);
+        }
+
+        /// <summary>
+        /// Extracts the best available human-readable message from a Frappe error JSON body.
+        /// Priority: _server_messages[0].message > exception (after colon) > raw body truncated.
+        /// </summary>
+        private static string ExtractFrappeMessage(string responseBody)
+        {
+            if (string.IsNullOrWhiteSpace(responseBody))
+                return "(empty response)";
+            try
+            {
+                using var doc = JsonDocument.Parse(responseBody);
+                var root = doc.RootElement;
+
+                // Try _server_messages first — most user-friendly
+                if (root.TryGetProperty("_server_messages", out var serverMsgsEl) &&
+                    serverMsgsEl.ValueKind == JsonValueKind.String)
+                {
+                    string innerJson = serverMsgsEl.GetString();
+                    if (!string.IsNullOrEmpty(innerJson))
+                    {
+                        using var innerDoc = JsonDocument.Parse(innerJson);
+                        if (innerDoc.RootElement.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var msgEl in innerDoc.RootElement.EnumerateArray())
+                            {
+                                JsonElement parsed = msgEl;
+                                // Elements can be double-encoded JSON strings
+                                if (msgEl.ValueKind == JsonValueKind.String)
+                                {
+                                    try { parsed = JsonDocument.Parse(msgEl.GetString()).RootElement; }
+                                    catch { }
+                                }
+                                if (parsed.TryGetProperty("message", out var msgProp))
+                                    return msgProp.GetString() ?? "";
+                            }
+                        }
+                    }
+                }
+
+                // Fallback: exception field — strip the class prefix (e.g. "frappe.exceptions.DataError: ...")
+                if (root.TryGetProperty("exception", out var excEl) &&
+                    excEl.ValueKind == JsonValueKind.String)
+                {
+                    string exc = excEl.GetString() ?? "";
+                    int colonIdx = exc.LastIndexOf(':');
+                    return colonIdx >= 0 ? exc.Substring(colonIdx + 1).Trim() : exc;
+                }
+            }
+            catch { /* fall through to raw truncation */ }
+
+            // Last resort: truncate raw body
+            return responseBody.Length > 200 ? responseBody.Substring(0, 200) + "…" : responseBody;
+        }
+
+        /// <summary>
         /// Cleans and normalizes a URL to handle common issues like duplicate slashes,
         /// missing protocol, trailing slashes, etc.
         /// </summary>
@@ -88,11 +161,17 @@ namespace ERPNext_PowerPlay.Helpers
                 cleanedUrl = CleanUrl(Program.FrappeURL, api_endpoint, api_filter);
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, cleanedUrl);
                 request.Headers.Add("Authorization", $"token {Program.ApiToken}");
+                request.Headers.ExpectContinue = false;
 
                 using (var client = new HttpClient() { BaseAddress = new Uri(Program.FrappeURL) })
                 {
                     HttpResponseMessage response_qr = await client.SendAsync(request);
-                    response_qr.EnsureSuccessStatusCode();
+                    if (!response_qr.IsSuccessStatusCode)
+                    {
+                        string errorBody = await response_qr.Content.ReadAsStringAsync();
+                        LogFrappeError((int)response_qr.StatusCode, response_qr.ReasonPhrase, cleanedUrl, errorBody);
+                        return "";
+                    }
 
                     string result = await response_qr.Content.ReadAsStringAsync();
                     return result;
@@ -218,13 +297,15 @@ namespace ERPNext_PowerPlay.Helpers
                 string cleanedUrl = CleanUrl(Program.FrappeURL, FilterStr);
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, cleanedUrl);
                 request.Headers.Add("Authorization", $"token {Program.ApiToken}");
+                request.Headers.ExpectContinue = false;
 
                 using (var client = new HttpClient() { BaseAddress = new Uri(Program.FrappeURL) })
                 {
                     HttpResponseMessage response_qr = await client.SendAsync(request);
                     if (!response_qr.IsSuccessStatusCode)
                     {
-                        Log.Error("Failing Endpoint: " + string.Format("{0}/{1}", Program.FrappeURL, FilterStr));
+                        string errorBody = await response_qr.Content.ReadAsStringAsync();
+                        LogFrappeError((int)response_qr.StatusCode, response_qr.ReasonPhrase, cleanedUrl, errorBody);
                         return null;
                     }
 
@@ -329,12 +410,12 @@ namespace ERPNext_PowerPlay.Helpers
 
         public async Task<string> GetLinkedPaymentEntries(string doctype, string docname)
         {
-            // Query Payment Entry directly filtering by references child table
-            // Payment Entry Reference child table is not directly accessible via API
+            // Frappe cross-doctype filter: query Payment Entry but filter via its child table
+            // Filter tuple uses child table doctype name ("Payment Entry Reference") + field name
             string filter = string.Format(
-                "api/resource/Payment Entry?fields=[\"name\",\"posting_date\",\"paid_amount\",\"mode_of_payment\",\"reference_no\"]" +
-                "&filters=[[\"Payment Entry\",\"references\",\"like\",\"%{0}%\"]]",
-                docname);
+                "api/resource/Payment%20Entry?fields=[\"name\",\"posting_date\",\"paid_amount\",\"mode_of_payment\",\"reference_no\"]" +
+                "&filters=[[\"Payment%20Entry%20Reference\",\"reference_name\",\"=\",\"{0}\"]]",
+                Uri.EscapeDataString(docname));
             return await GetAsString(filter, "");
         }
 
@@ -508,7 +589,6 @@ namespace ERPNext_PowerPlay.Helpers
             try
             {
                 string peJson = await GetLinkedPaymentEntries(doctype, docname);
-
                 if (string.IsNullOrEmpty(peJson)) return payments;
 
                 using (JsonDocument peDoc = JsonDocument.Parse(peJson))
@@ -518,27 +598,22 @@ namespace ERPNext_PowerPlay.Helpers
 
                     foreach (var peEntry in dataArray.EnumerateArray())
                     {
-                        var nameElement = JsonHelper.GetJsonElement(peEntry, "name");
-                        var postingDateElement = JsonHelper.GetJsonElement(peEntry, "posting_date");
-                        var paidAmountElement = JsonHelper.GetJsonElement(peEntry, "paid_amount");
-                        var modeOfPaymentElement = JsonHelper.GetJsonElement(peEntry, "mode_of_payment");
-                        var referenceNoElement = JsonHelper.GetJsonElement(peEntry, "reference_no");
-
-                        string peName = JsonHelper.GetJsonElementValue(nameElement);
+                        string peName = JsonHelper.GetJsonElementValue(JsonHelper.GetJsonElement(peEntry, "name"));
                         if (string.IsNullOrEmpty(peName)) continue;
 
                         double paidAmount = 0;
-                        if (paidAmountElement.ValueKind == JsonValueKind.Number)
-                            paidAmount = paidAmountElement.GetDouble();
+                        var paidEl = JsonHelper.GetJsonElement(peEntry, "paid_amount");
+                        if (paidEl.ValueKind == JsonValueKind.Number)
+                            paidAmount = paidEl.GetDouble();
 
                         payments.Add(new LinkedPayment
                         {
                             PaymentEntry = peName,
-                            PostingDate = JsonHelper.GetJsonElementValue(postingDateElement) ?? "",
+                            PostingDate = JsonHelper.GetJsonElementValue(JsonHelper.GetJsonElement(peEntry, "posting_date")) ?? "",
                             PaidAmount = paidAmount,
-                            ModeOfPayment = JsonHelper.GetJsonElementValue(modeOfPaymentElement) ?? "",
-                            ReferenceNo = JsonHelper.GetJsonElementValue(referenceNoElement),
-                            AllocatedAmount = paidAmount // Using paid_amount as allocated since we can't get per-reference allocation easily
+                            ModeOfPayment = JsonHelper.GetJsonElementValue(JsonHelper.GetJsonElement(peEntry, "mode_of_payment")) ?? "",
+                            ReferenceNo = JsonHelper.GetJsonElementValue(JsonHelper.GetJsonElement(peEntry, "reference_no")),
+                            AllocatedAmount = paidAmount
                         });
                     }
                 }

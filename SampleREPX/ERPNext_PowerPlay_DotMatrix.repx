@@ -15,7 +15,7 @@
     <Item3 Ref="8" ControlType="BottomMarginBand" Name="bottomMarginBand1" HeightF="1.092784" />
     <Item4 Ref="9" ControlType="PageHeaderBand" Name="PageHeader" HeightF="190.0005" TextAlignment="TopRight" Font="Segoe UI, 9.75pt">
       <Controls>
-        <Item1 Ref="10" ControlType="XRLabel" Name="label9" TextFormatString="{0:000}" CanGrow="false" AnchorVertical="Top" TextAlignment="MiddleLeft" WordWrap="false" SizeF="164.06616,19.916718" LocationFloat="456.44705,138.89618" Font="Segoe UI, 11pt, style=Bold" Padding="2,2,0,0,100" BorderColor="Transparent" Borders="All">
+        <Item1 Ref="10" ControlType="XRLabel" Name="label9" TextFormatString="{0:000}" CanShrink="true" AnchorVertical="Top" TextAlignment="MiddleLeft" WordWrap="false" SizeF="164.06616,19.916718" LocationFloat="456.44705,138.89618" Font="Segoe UI, 11pt, style=Bold" Padding="2,2,0,0,100" BorderColor="Transparent" Borders="All">
           <ExpressionBindings>
             <Item1 Ref="11" EventName="BeforePrint" PropertyName="Text" Expression="[data].[custom_reference]" />
           </ExpressionBindings>
@@ -45,7 +45,7 @@
           </ExpressionBindings>
           <StylePriority Ref="24" UseFont="false" UseBorderColor="false" UseBorders="false" UseTextAlignment="false" />
         </Item5>
-        <Item6 Ref="25" ControlType="XRLabel" Name="label1" TextFormatString="{0:000}" CanGrow="false" AnchorVertical="Top" TextAlignment="MiddleLeft" WordWrap="false" SizeF="164.06616,19.916718" LocationFloat="292.3809,138.89618" Font="Segoe UI, 11pt, style=Bold" Padding="2,2,0,0,100" BorderColor="Transparent" Borders="All">
+        <Item6 Ref="25" ControlType="XRLabel" Name="label1" TextFormatString="{0:000}" Multiline="true" CanShrink="true" AnchorVertical="Top" TextAlignment="MiddleLeft" SizeF="179.6911,19.916718" LocationFloat="276.75592,138.89618" Font="Segoe UI, 11pt, style=Bold" Padding="2,2,0,0,100" BorderColor="Transparent" Borders="All">
           <ExpressionBindings>
             <Item1 Ref="26" EventName="BeforePrint" PropertyName="Text" Expression="[data].[name]" />
           </ExpressionBindings>

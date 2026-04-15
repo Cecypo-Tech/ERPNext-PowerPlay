@@ -58,6 +58,7 @@
             tabbedView1 = new DevExpress.XtraBars.Docking2010.Views.Tabbed.TabbedView(components);
             notifyIcon1 = new NotifyIcon(components);
             barButtonItem_getJson = new DevExpress.XtraBars.BarButtonItem();
+            barStaticItem_lastCheck = new DevExpress.XtraBars.BarStaticItem();
             ((System.ComponentModel.ISupportInitialize)ribbon).BeginInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemTextEdit_PreviewDocName).BeginInit();
             ((System.ComponentModel.ISupportInitialize)repositoryItemLookUp_PreviewDocType).BeginInit();
@@ -69,7 +70,7 @@
             // ribbon
             // 
             ribbon.ExpandCollapseItem.Id = 0;
-            ribbon.Items.AddRange(new DevExpress.XtraBars.BarItem[] { ribbon.ExpandCollapseItem, btnLogin, btnLogout, btnPrintSettings, barEditItem_DocNamePreview, barButtonItem1, barEditItem_DoctypePreview, barButtonItem_JobHistory, skinPaletteRibbonGalleryBarItem1, btnReportList, skinRibbonGalleryBarItem1, barToggleSwitchItem1, barButtonItem_getJson });
+            ribbon.Items.AddRange(new DevExpress.XtraBars.BarItem[] { ribbon.ExpandCollapseItem, btnLogin, btnLogout, btnPrintSettings, barEditItem_DocNamePreview, barButtonItem1, barEditItem_DoctypePreview, barButtonItem_JobHistory, skinPaletteRibbonGalleryBarItem1, btnReportList, skinRibbonGalleryBarItem1, barToggleSwitchItem1, barButtonItem_getJson, barStaticItem_lastCheck });
             ribbon.Location = new Point(0, 0);
             ribbon.MaxItemId = 16;
             ribbon.Name = "ribbon";
@@ -238,9 +239,17 @@
             repositoryItemComboBox_PreviewDocTypes.Buttons.AddRange(new DevExpress.XtraEditors.Controls.EditorButton[] { new DevExpress.XtraEditors.Controls.EditorButton(DevExpress.XtraEditors.Controls.ButtonPredefines.Combo) });
             repositoryItemComboBox_PreviewDocTypes.Name = "repositoryItemComboBox_PreviewDocTypes";
             repositoryItemComboBox_PreviewDocTypes.TextEditStyle = DevExpress.XtraEditors.Controls.TextEditStyles.DisableTextEditor;
-            // 
+            //
+            // barStaticItem_lastCheck
+            //
+            barStaticItem_lastCheck.Caption = "Last check: —";
+            barStaticItem_lastCheck.Id = 17;
+            barStaticItem_lastCheck.Name = "barStaticItem_lastCheck";
+            barStaticItem_lastCheck.TextAlignment = System.Drawing.StringAlignment.Near;
+            //
             // ribbonStatusBar
-            // 
+            //
+            ribbonStatusBar.ItemLinks.Add(barStaticItem_lastCheck);
             ribbonStatusBar.Location = new Point(0, 416);
             ribbonStatusBar.Name = "ribbonStatusBar";
             ribbonStatusBar.Ribbon = ribbon;
@@ -328,5 +337,6 @@
         private DevExpress.XtraBars.BarToggleSwitchItem barToggleSwitchItem1;
         private DevExpress.XtraBars.Ribbon.RibbonPageGroup ribbonPageGroup6;
         private DevExpress.XtraBars.BarButtonItem barButtonItem_getJson;
+        private DevExpress.XtraBars.BarStaticItem barStaticItem_lastCheck;
     }
 }

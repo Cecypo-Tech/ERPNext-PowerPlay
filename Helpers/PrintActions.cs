@@ -90,7 +90,6 @@ namespace ERPNext_PowerPlay.Helpers
                 //{
                 if (PrinterExists(printrow.Printer))
                 {
-                    Log.Information("[{0}] Printing {1} to {2}", printrow.ID, doc.Name, printrow.Printer.ToString());
                     switch (printrow.PrintEngine)
                     {
                         case PrintEngine.FrappePDF:
@@ -352,7 +351,7 @@ namespace ERPNext_PowerPlay.Helpers
 
         void processor_Processing(object sender, GhostscriptProcessorProcessingEventArgs e)
         {
-            Log.Information(e.CurrentPage.ToString() + " / " + e.TotalPages.ToString());
+            Log.Debug(e.CurrentPage.ToString() + " / " + e.TotalPages.ToString());
         }
         public class LogStdio : GhostscriptStdIO
         {

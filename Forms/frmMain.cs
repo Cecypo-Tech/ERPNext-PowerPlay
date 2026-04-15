@@ -308,19 +308,21 @@ namespace ERPNext_PowerPlay
 
         }
         private volatile bool _requestStop = false;
-        AppDbContext dbC = new AppDbContext();
+        AppDbContext dbC = new AppDbContext(); // used by SocketIOHelper only
 
         [STAThread]
         private async void OnTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            Log.Information("Job check at {Time}", DateTime.Now.ToString("HH:mm:ss"));
+            string checkTime = DateTime.Now.ToString("HH:mm:ss");
+            Log.Debug("Job check at {Time}", checkTime);
+            this.Invoke(() => barStaticItem_lastCheck.Caption = $"Last check: {checkTime}");
 
             Thread t = new Thread((ThreadStart)(() =>
             {
-
-                PrintJobHelper printJobHelper = new PrintJobHelper(dbC);
+                // Fresh context each tick so EF doesn't return stale tracked entities
+                using var freshDb = new AppDbContext();
+                PrintJobHelper printJobHelper = new PrintJobHelper(freshDb);
                 printJobHelper.RunPrintJobsAsync();
-
             }));
             // Run from a thread that joins the STA Thread
             t.SetApartmentState(ApartmentState.STA);

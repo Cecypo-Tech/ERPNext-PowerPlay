@@ -1,6 +1,7 @@
 ﻿using DevExpress.XtraEditors;
 using ERPNext_PowerPlay.Models;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -15,6 +16,11 @@ namespace ERPNext_PowerPlay.Helpers
 {
     public class PrintJobHelper
     {
+        // Static: shared across all PrintJobHelper instances (frmMain + frmPrintSettings each new one up)
+        // "run:{ps.ID}"        — guards against two concurrent runs for the same PrinterSetting
+        // "{ps.ID}:{doc.Name}" — guards against the same doc/setting combo being processed twice
+        private static readonly ConcurrentDictionary<string, byte> _inFlight = new();
+
         AppDbContext db = new AppDbContext();
         public PrintJobHelper(AppDbContext dbx)
         {
@@ -30,24 +36,51 @@ namespace ERPNext_PowerPlay.Helpers
 
                 foreach (PrinterSetting ps in db.PrinterSetting.Where(x => x.Enabled).ToList())
                 {
-                    Frappe_DocList.FrappeDocList DocList = await new FrappeAPI().GetDocs2Print(ps);
-                    if (DocList == null) return;
-                    if (DocList.data.Count() > 0) Log.Information("[{0}] Collected {1} Documents in {2}s", ps.ID, DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
-                    foreach (Frappe_DocList.data fd in DocList.data)
+                    string runKey = $"run:{ps.ID}";
+                    if (!_inFlight.TryAdd(runKey, 0))
                     {
-                        bool processed = await p.PrintDoc(fd, ps);//.Frappe_GetDoc(fd.name, ps);
-                        if (processed)
-                        {
-                            string doctype = ps.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
-                            await new FrappeAPI().UpdateCount(string.Format("/api/resource/{0}", doctype), fd);
-                            await SaveJob(fd);
-                        }
-                        else
-                        {
-                            Log.Warning("Document {0}/{1} failed PrindDoc()!", fd.DocType.ToString(), fd.Name);
-                        }
+                        Log.Warning("[{0}] Skipping — PrinterSetting already running on another thread.", ps.ID);
+                        continue;
                     }
-                    if (DocList.data.Count() > 0) Log.Information("Processed {0} Documents in: {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
+                    try
+                    {
+                        Frappe_DocList.FrappeDocList DocList = await new FrappeAPI().GetDocs2Print(ps);
+                        if (DocList == null) continue;
+
+                        foreach (Frappe_DocList.data fd in DocList.data)
+                        {
+                            string docKey = $"{ps.ID}:{fd.Name}";
+                            if (!_inFlight.TryAdd(docKey, 0))
+                            {
+                                Log.Warning("[{0}] Skipping {1} — already in-flight on another thread.", ps.ID, fd.Name);
+                                continue;
+                            }
+                            try
+                            {
+                                bool processed = await p.PrintDoc(fd, ps);
+                                if (processed)
+                                {
+                                    string doctype = ps.DocType.GetAttributeOfType<DescriptionAttribute>().Description;
+                                    await new FrappeAPI().UpdateCount(string.Format("/api/resource/{0}", doctype), fd);
+                                    await SaveJob(fd);
+                                }
+                                else
+                                {
+                                    Log.Warning("Document {0}/{1} failed PrintDoc()!", fd.DocType.ToString(), fd.Name);
+                                }
+                            }
+                            finally
+                            {
+                                _inFlight.TryRemove(docKey, out _);
+                            }
+                        }
+
+                        if (DocList.data.Count() > 0) Log.Information("Processed {0} Documents in: {1}s", DocList.data.Count(), clock.Elapsed.TotalSeconds.ToString());
+                    }
+                    finally
+                    {
+                        _inFlight.TryRemove(runKey, out _);
+                    }
                 }
                 clock.Stop();
             }
