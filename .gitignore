@@ -365,3 +365,4 @@ FodyWeavers.xsd
 # Claude Code temporary files
 tmpclaude-*
 .claude/
+/publish_output
