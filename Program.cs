@@ -5,6 +5,7 @@ using Serilog.Sinks.WinForms.Base;
 using System.Diagnostics;
 using System.IO;
 using Velopack;
+using Velopack.Sources;
 
 namespace ERPNext_PowerPlay
 {
@@ -55,7 +56,7 @@ namespace ERPNext_PowerPlay
         {
             try
             {
-                var mgr = new UpdateManager("https://cecypo.tech/updates/");
+                var mgr = new UpdateManager(new GithubSource("https://github.com/Cecypo-Tech/ERPNext-PowerPlay", null, false));
                 var newVersion = await mgr.CheckForUpdatesAsync();
                 if (newVersion == null) return;
 
