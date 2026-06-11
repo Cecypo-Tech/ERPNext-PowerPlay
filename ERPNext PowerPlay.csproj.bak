@@ -8,7 +8,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>Icons\icons8-play.ico</ApplicationIcon>
-    <Version>1.0.20.0</Version>
+    <Version>1.0.19.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="DevExpress.Win.Design" Version="25.1.3" />
+    <PackageReference Include="DevExpress.Win.Design" Version="24.2.4-pre-25012" />
     <PackageReference Include="Ghostscript.NET" Version="1.3.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.4">
@@ -31,7 +31,7 @@
     <PackageReference Include="Serilog.Sinks.WinForms.Core" Version="2.0.0" />
     <PackageReference Include="SocketIOClient" Version="3.1.2" />
     <PackageReference Include="SumatraPDFWrapper" Version="1.0.4" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
     <PackageReference Include="Velopack" Version="0.0.1298" />
   </ItemGroup>
 
@@ -55,8 +55,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="DevExpress.Docs.v25.1">
-      <HintPath>C:\Program Files\DevExpress 25.1\Components\Bin\Framework\DevExpress.Docs.v25.1.dll</HintPath>
+    <Reference Include="DevExpress.Docs.v24.2">
+      <HintPath>..\..\..\..\..\Program Files\DevExpress 24.2\Components\Bin\Framework\DevExpress.Docs.v24.2.dll</HintPath>
     </Reference>
   </ItemGroup>
 

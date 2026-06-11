@@ -383,7 +383,6 @@ namespace ERPNext_PowerPlay.Helpers
                         //documentProcessor.QueryPageSettings += DocumentProcessor_QueryPageSettings;   //not working for pdf paper size
                         documentProcessor.LoadDocument(memoryStream);
 
-
                         //  //  Embed a "CopyName" on the PDF
                         //if (copyData.CopyName != null)
                         //    if (copyData.CopyName.Length > 0 && copyData.FontSize > 0)

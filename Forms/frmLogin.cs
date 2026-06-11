@@ -32,6 +32,7 @@ namespace ERPNext_PowerPlay
         public frmLogin()
         {
             InitializeComponent();
+            EnsureDBExists();
             LoadSettings();
         }
 
@@ -123,7 +124,6 @@ namespace ERPNext_PowerPlay
                     if (response.IsSuccessStatusCode)
                     {
                         Log.Information("Successfully authenticated to " + url);
-                        EnsureDBExists();
                         DialogResult = DialogResult.OK;
                         return true;
                     }
@@ -172,18 +172,46 @@ namespace ERPNext_PowerPlay
             }
         }
 
+        private bool TableExists(AppDbContext db, string tableName)
+        {
+            try
+            {
+                var conn = db.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open)
+                    conn.Open();
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = $"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='{tableName}'";
+                    return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private void EnsureDBExists()
         {
             try
             {
+                // Check in its own context so the connection is fully closed before Migrate() opens a fresh one.
+                // Migrate() behaves incorrectly when the connection was already opened externally.
+                // Use Settings as the discriminator — it exists in all old DBs regardless of whether Creds does.
+                bool isExistingDB;
+                bool hasCreds;
+                using (AppDbContext checkDb = new AppDbContext())
+                {
+                    isExistingDB = TableExists(checkDb, "Settings");
+                    hasCreds = TableExists(checkDb, "Creds");
+                }
+
                 using (AppDbContext db = new AppDbContext())
                 {
-                    // Check if database exists but was created without migrations (EnsureCreated)
-                    bool dbExists = File.Exists(db.DbPath);
-
-                    if (dbExists)
+                    if (isExistingDB)
                     {
-                        // Create migrations history table and baseline existing migrations
+                        // Existing DB (old EnsureCreated or already migration-managed).
+                        // Must NOT call Migrate() here — it would try to CREATE TABLE Settings etc. which already exist.
                         db.Database.ExecuteSqlRaw(@"
                             CREATE TABLE IF NOT EXISTS ""__EFMigrationsHistory"" (
                                 ""MigrationId"" TEXT NOT NULL PRIMARY KEY,
@@ -194,8 +222,22 @@ namespace ERPNext_PowerPlay
                             INSERT OR IGNORE INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
                             VALUES ('20250424124228_InitialCreate', '8.0.0')");
 
-                        // Add any missing columns that may have been added after InitialCreate
-                        // This handles databases created with EnsureCreated that have the columns already
+                        // Create Creds if it was absent from the original schema
+                        if (!hasCreds)
+                        {
+                            db.Database.ExecuteSqlRaw(@"
+                                CREATE TABLE ""Creds"" (
+                                    ""ID"" INTEGER NOT NULL CONSTRAINT ""PK_Creds"" PRIMARY KEY AUTOINCREMENT,
+                                    ""URL"" TEXT NOT NULL,
+                                    ""User"" TEXT NULL,
+                                    ""Pass"" TEXT NULL,
+                                    ""APIKey"" TEXT NULL,
+                                    ""Secret"" TEXT NULL
+                                )");
+                            Log.Information("Created missing Creds table");
+                        }
+
+                        // Add any missing columns added after InitialCreate
                         AddColumnIfNotExists(db, "Settings", "StringValue", "TEXT NOT NULL DEFAULT ''");
                         AddColumnIfNotExists(db, "Settings", "Value", "INTEGER NOT NULL DEFAULT 0");
                         AddColumnIfNotExists(db, "JobHistory", "Set_Warehouse", "TEXT NOT NULL DEFAULT ''");
@@ -209,7 +251,7 @@ namespace ERPNext_PowerPlay
                     }
                     else
                     {
-                        // New database - run all migrations normally
+                        // New or empty database — run all migrations on a clean connection
                         db.Database.Migrate();
                         Log.Information("Database created with migrations");
                     }

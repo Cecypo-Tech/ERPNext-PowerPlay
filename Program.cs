@@ -57,6 +57,7 @@ namespace ERPNext_PowerPlay
             try
             {
                 var mgr = new UpdateManager(new GithubSource("https://github.com/Cecypo-Tech/ERPNext-PowerPlay", null, false));
+                if (!mgr.IsInstalled) return;
                 var newVersion = await mgr.CheckForUpdatesAsync();
                 if (newVersion == null) return;
 
